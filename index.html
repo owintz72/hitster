@@ -1,0 +1,676 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Hit-Zeitstrahl</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=Figtree:wght@400;600;700&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: eine Spalte, oben Spielstand, Mitte aktuelle Karte, darunter vertikaler Zeitstrahl mit Einfüge-Lücken */
+:root{
+  --bg:#f3f1f7; --surface:#ffffff; --ink:#1d1a26; --muted:#6b6579; --line:#dcd7e6;
+  --a:#c2255c; --a-soft:#fbe3ec; --b:#1864ab; --b-soft:#dfecfa;
+  --ok:#2b8a3e; --ok-soft:#e3f5e6; --bad:#c92a2a; --bad-soft:#fde5e5;
+  --vinyl:#24202d;
+  --f-display:"Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif;
+  --f-body:"Figtree",ui-sans-serif,system-ui,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#15131b; --surface:#211e2a; --ink:#f1eef7; --muted:#a59fb3; --line:#363142;
+  --a:#f06595; --a-soft:#3a1d2a; --b:#4dabf7; --b-soft:#162a3d;
+  --ok:#51cf66; --ok-soft:#173222; --bad:#ff6b6b; --bad-soft:#3a1c1c; --vinyl:#0b0a0f; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#15131b; --surface:#211e2a; --ink:#f1eef7; --muted:#a59fb3; --line:#363142;
+  --a:#f06595; --a-soft:#3a1d2a; --b:#4dabf7; --b-soft:#162a3d;
+  --ok:#51cf66; --ok-soft:#173222; --bad:#ff6b6b; --bad-soft:#3a1c1c; --vinyl:#0b0a0f; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 var(--f-body);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px}
+.wrap{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+h1,h2{font-family:var(--f-display);margin:0;text-wrap:balance;line-height:1.1}
+h1{font-size:2rem;font-weight:800;letter-spacing:-.02em}
+h2{font-size:1.25rem;font-weight:800}
+.label{font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700}
+.muted{color:var(--muted)}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+.row>*{flex:1 1 140px;min-width:0}
+label.field{display:flex;flex-direction:column;gap:4px;font-weight:600;font-size:.9rem}
+input[type=text],select,textarea{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;width:100%}
+textarea{min-height:110px;font-family:var(--f-mono);font-size:.82rem;resize:vertical}
+.check{display:flex;gap:10px;align-items:center;font-weight:600}
+.check input{width:20px;height:20px;accent-color:var(--a)}
+button,.btn{font:inherit;font-weight:700;border:0;border-radius:999px;padding:12px 18px;cursor:pointer;
+  background:var(--ink);color:var(--bg);text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+button.ghost,.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+button.small{padding:8px 14px;font-size:.88rem}
+button:disabled{opacity:.4;cursor:not-allowed}
+:focus-visible{outline:3px solid var(--b);outline-offset:2px}
+
+/* Spielstand */
+.score{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.team{border-radius:14px;padding:12px 14px;border:2px solid transparent;background:var(--surface);display:flex;flex-direction:column;gap:6px}
+.team .name{font-weight:700;overflow-wrap:anywhere}
+.team .count{font-family:var(--f-mono);font-weight:700;font-size:1.4rem;font-variant-numeric:tabular-nums}
+.team .bar{height:6px;border-radius:3px;background:var(--line);overflow:hidden}
+.team .bar i{display:block;height:100%}
+.team.ta .bar i{background:var(--a)} .team.tb .bar i{background:var(--b)}
+.team.active.ta{border-color:var(--a);background:var(--a-soft)}
+.team.active.tb{border-color:var(--b);background:var(--b-soft)}
+
+/* Mystery-Karte als Schallplatte */
+.mystery{display:flex;gap:16px;align-items:center}
+.disc{flex:0 0 92px;height:92px;border-radius:50%;
+  background:radial-gradient(circle,var(--accent) 0 17%,var(--vinyl) 18% 22%,#2f2a3a 23% 24%,var(--vinyl) 25% 34%,#2f2a3a 35% 36%,var(--vinyl) 37% 50%,#2f2a3a 51% 52%,var(--vinyl) 53%);
+  display:grid;place-items:center;color:#fff;font-family:var(--f-display);font-weight:800;font-size:1.1rem}
+.spin{animation:spin 2.4s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.mystery .info{display:flex;flex-direction:column;gap:8px;min-width:0;flex:1}
+
+/* Zeitstrahl */
+.timeline{display:flex;flex-direction:column;gap:0}
+.card{display:grid;grid-template-columns:76px 1fr;gap:12px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.card .yr{font-family:var(--f-mono);font-weight:700;font-size:1.25rem;font-variant-numeric:tabular-nums;color:var(--accent)}
+.card .t{font-weight:700;overflow-wrap:anywhere;line-height:1.25}
+.card .a{color:var(--muted);font-size:.9rem;overflow-wrap:anywhere}
+.card.new{border-width:2px}
+.card.new.good{border-color:var(--ok);background:var(--ok-soft)}
+.card.new.wrong{border-color:var(--bad);background:var(--bad-soft)}
+.slot{border:2px dashed var(--line);background:transparent;color:var(--muted);border-radius:10px;padding:6px;margin:6px 0;width:100%;font-weight:600;font-size:.85rem}
+.slot:hover{border-color:var(--accent);color:var(--accent)}
+.slot.sel{border-style:solid;border-color:var(--accent);background:var(--accent-soft);color:var(--accent);padding:12px}
+.gap{height:8px}
+.pbtns{display:flex;gap:8px;flex-wrap:wrap}
+.pbtns>#play{flex:1 1 auto}
+
+.result{border-radius:14px;padding:14px 16px;font-weight:700}
+.result.good{background:var(--ok-soft);color:var(--ok)}
+.result.wrong{background:var(--bad-soft);color:var(--bad)}
+.win{text-align:center;padding:28px 16px}
+.win .big{font-family:var(--f-display);font-weight:800;font-size:2.4rem;line-height:1.05;text-wrap:balance}
+.hint{font-size:.85rem;color:var(--muted)}
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:start}
+.duo>section{min-width:0;display:flex;flex-direction:column;gap:8px}
+.colhead{color:var(--accent);font-size:1.05rem;overflow-wrap:anywhere;padding-bottom:6px;border-bottom:3px solid var(--accent)}
+.duo .slot{padding:6px 4px;font-size:.8rem}
+.duo .slot.sel{padding:10px 4px}
+@media (max-width:560px){
+  .duo .card{grid-template-columns:1fr;gap:2px;padding:8px 10px}
+  .duo .card .yr{font-size:1.05rem}
+  .duo .card .t{font-size:.88rem}
+  .duo .card .a{font-size:.78rem}
+}
+@media (prefers-reduced-motion:reduce){.spin{animation:none}}
+</style>
+
+</head>
+<body>
+<div class="wrap" id="app"></div>
+
+<script>
+const BUILTIN = [
+["Ein Schiff wird kommen","Lale Andersen",1960],["Da sprach der alte Häuptling der Indianer","Gus Backus",1960],
+["Stand by Me","Ben E. King",1961],["Twist and Shout","The Beatles",1963],["I Want to Hold Your Hand","The Beatles",1963],
+["Oh, Pretty Woman","Roy Orbison",1964],["My Girl","The Temptations",1964],["The House of the Rising Sun","The Animals",1964],
+["(I Can't Get No) Satisfaction","The Rolling Stones",1965],["Yesterday","The Beatles",1965],["Marmor, Stein und Eisen bricht","Drafi Deutscher",1965],
+["Good Vibrations","The Beach Boys",1966],["Paint It Black","The Rolling Stones",1966],["Respect","Aretha Franklin",1967],
+["What a Wonderful World","Louis Armstrong",1967],["Light My Fire","The Doors",1967],["Purple Haze","The Jimi Hendrix Experience",1967],
+["All You Need Is Love","The Beatles",1967],["Hey Jude","The Beatles",1968],["Proud Mary","Creedence Clearwater Revival",1969],
+["Sugar, Sugar","The Archies",1969],["Mendocino","Michael Holm",1969],
+["Bridge over Troubled Water","Simon & Garfunkel",1970],["Let It Be","The Beatles",1970],["Lola","The Kinks",1970],
+["Wunder gibt es immer wieder","Katja Ebstein",1970],["Imagine","John Lennon",1971],["Superstition","Stevie Wonder",1972],
+["Sweet Home Alabama","Lynyrd Skynyrd",1974],["Waterloo","ABBA",1974],["Griechischer Wein","Udo Jürgens",1974],
+["Über den Wolken","Reinhard Mey",1974],["Theo, wir fahr'n nach Lodz","Vicky Leandros",1974],["Autobahn","Kraftwerk",1974],
+["Bohemian Rhapsody","Queen",1975],["Mamma Mia","ABBA",1975],["Born to Run","Bruce Springsteen",1975],["Er gehört zu mir","Marianne Rosenberg",1975],
+["Dancing Queen","ABBA",1976],["Daddy Cool","Boney M.",1976],["Ein Bett im Kornfeld","Jürgen Drews",1976],["Aber bitte mit Sahne","Udo Jürgens",1976],
+["Alt wie ein Baum","Puhdys",1976],["Go Your Own Way","Fleetwood Mac",1976],
+["Stayin' Alive","Bee Gees",1977],["Heroes","David Bowie",1977],["Mit 66 Jahren","Udo Jürgens",1977],
+["Y.M.C.A.","Village People",1978],["I Will Survive","Gloria Gaynor",1978],["Rivers of Babylon","Boney M.",1978],["Le Freak","Chic",1978],
+["September","Earth, Wind & Fire",1978],["Sultans of Swing","Dire Straits",1978],["Kreuzberger Nächte","Gebrüder Blattschuss",1978],
+["Highway to Hell","AC/DC",1979],["Another Brick in the Wall (Part 2)","Pink Floyd",1979],["Dschinghis Khan","Dschinghis Khan",1979],
+["Heart of Glass","Blondie",1979],["Don't Stop Me Now","Queen",1979],
+["Skandal im Sperrbezirk","Spider Murphy Gang",1981],["Tainted Love","Soft Cell",1981],["Under Pressure","Queen & David Bowie",1981],
+["Eye of the Tiger","Survivor",1982],["Africa","Toto",1982],["Da Da Da","Trio",1982],["Ein bißchen Frieden","Nicole",1982],
+["Ich will Spaß","Markus",1982],["Sternenhimmel","Hubert Kah",1982],["Ich war noch niemals in New York","Udo Jürgens",1982],
+["Billie Jean","Michael Jackson",1983],["99 Luftballons","Nena",1983],["Major Tom (Völlig losgelöst)","Peter Schilling",1983],
+["Sweet Dreams (Are Made of This)","Eurythmics",1983],["Girls Just Want to Have Fun","Cyndi Lauper",1983],["Every Breath You Take","The Police",1983],
+["Total Eclipse of the Heart","Bonnie Tyler",1983],["Relax","Frankie Goes to Hollywood",1983],["Sonderzug nach Pankow","Udo Lindenberg",1983],
+["Like a Virgin","Madonna",1984],["Purple Rain","Prince",1984],["Footloose","Kenny Loggins",1984],["Männer","Herbert Grönemeyer",1984],
+["You're My Heart, You're My Soul","Modern Talking",1984],["Wake Me Up Before You Go-Go","Wham!",1984],["Last Christmas","Wham!",1984],
+["Take On Me","a-ha",1985],["Rock Me Amadeus","Falco",1985],["Don't You (Forget About Me)","Simple Minds",1985],["Material Girl","Madonna",1985],
+["Ohne Dich (schlaf' ich heut' Nacht nicht ein)","Münchener Freiheit",1985],
+["Livin' on a Prayer","Bon Jovi",1986],["Brother Louie","Modern Talking",1986],["Tausendmal du","Münchener Freiheit",1986],
+["Never Gonna Give You Up","Rick Astley",1987],["Faith","George Michael",1987],
+["Don't Worry, Be Happy","Bobby McFerrin",1988],["Sweet Child o' Mine","Guns N' Roses",1988],["Westerland","Die Ärzte",1988],
+["Like a Prayer","Madonna",1989],["Pump Up the Jam","Technotronic",1989],
+["Verdammt, ich lieb' dich","Matthias Reim",1990],["Smells Like Teen Spirit","Nirvana",1991],["Losing My Religion","R.E.M.",1991],
+["Rhythm Is a Dancer","Snap!",1992],["Die da!?!","Die Fantastischen Vier",1992],["What Is Love","Haddaway",1993],["Mr. Vain","Culture Beat",1993],
+["Schrei nach Liebe","Die Ärzte",1993],["Wonderwall","Oasis",1995],["Gangsta's Paradise","Coolio",1995],
+["Wannabe","Spice Girls",1996],["Freed from Desire","Gala",1996],["Zehn kleine Jägermeister","Die Toten Hosen",1996],
+["My Heart Will Go On","Céline Dion",1997],["Barbie Girl","Aqua",1997],["Torn","Natalie Imbruglia",1997],["Bitter Sweet Symphony","The Verve",1997],
+["...Baby One More Time","Britney Spears",1998],["Männer sind Schweine","Die Ärzte",1998],
+["Mambo No. 5","Lou Bega",1999],["No Scrubs","TLC",1999],["Anton aus Tirol","DJ Ötzi",1999],
+["Oops!... I Did It Again","Britney Spears",2000],["In the End","Linkin Park",2001],["Lose Yourself","Eminem",2002],["Mensch","Herbert Grönemeyer",2002],
+["Hey Ya!","OutKast",2003],["Crazy in Love","Beyoncé",2003],["Seven Nation Army","The White Stripes",2003],["Bring Me to Life","Evanescence",2003],
+["Geile Zeit","Juli",2004],["Perfekte Welle","Juli",2004],["Durch den Monsun","Tokio Hotel",2005],
+["Crazy","Gnarls Barkley",2006],["Hips Don't Lie","Shakira",2006],["Rehab","Amy Winehouse",2006],
+["Umbrella","Rihanna",2007],["Junge","Die Ärzte",2007],["Poker Face","Lady Gaga",2008],["I Gotta Feeling","The Black Eyed Peas",2009],
+["Rolling in the Deep","Adele",2010],["Somebody That I Used to Know","Gotye",2011],["Gangnam Style","PSY",2012],["Tage wie diese","Die Toten Hosen",2012],
+["Bilder im Kopf","Sido",2012],["Get Lucky","Daft Punk",2013],["Happy","Pharrell Williams",2013],["Wake Me Up","Avicii",2013],["Royals","Lorde",2013],
+["Atemlos durch die Nacht","Helene Fischer",2013],["Applaus, Applaus","Sportfreunde Stiller",2013],
+["Uptown Funk","Mark Ronson feat. Bruno Mars",2014],["Shake It Off","Taylor Swift",2014],["Thinking Out Loud","Ed Sheeran",2014],["Auf uns","Andreas Bourani",2014],
+["Hello","Adele",2015],["Lean On","Major Lazer & DJ Snake",2015],["Lieblingsmensch","Namika",2015],["Astronaut","Sido & Andreas Bourani",2015],
+["Hurra die Welt geht unter","K.I.Z",2015],["Can't Stop the Feeling!","Justin Timberlake",2016],["Chöre","Mark Forster",2016],
+["Shape of You","Ed Sheeran",2017],["Despacito","Luis Fonsi feat. Daddy Yankee",2017],["Cordula Grün","Josh.",2018],
+["Bad Guy","Billie Eilish",2019],["Blinding Lights","The Weeknd",2019],["Dance Monkey","Tones and I",2019],["Roller","Apache 207",2019],
+["Levitating","Dua Lipa",2020],["Heat Waves","Glass Animals",2020],["drivers license","Olivia Rodrigo",2021],["Bad Habits","Ed Sheeran",2021],
+["Stay","The Kid LAROI & Justin Bieber",2021],["As It Was","Harry Styles",2022],["Layla","DJ Robin & Schürze",2022],["Anti-Hero","Taylor Swift",2022],
+["Wildberry Lillet","Nina Chuba",2022],["Flowers","Miley Cyrus",2023],["Komet","Udo Lindenberg & Apache 207",2023],["Tattoo","Loreen",2023],
+["Espresso","Sabrina Carpenter",2024],["Beautiful Things","Benson Boone",2024],["Die With a Smile","Lady Gaga & Bruno Mars",2024],["APT.","Rosé & Bruno Mars",2024]
+].map(([t,a,y])=>({t,a,y}));
+const PLS=[
+["Tańczące Eurydyki","Anna German",1964],["Sen o Warszawie","Czesław Niemen",1966],["Dziwny jest ten świat","Czesław Niemen",1967],
+["Biały krzyż","Czerwone Gitary",1967],["Wszystko mi mówi, że mnie ktoś pokochał","Skaldowie",1969],["Kiedy byłem małym chłopcem","Breakout",1971],
+["Małgośka","Maryla Rodowicz",1973],["Tyle słońca w całym mieście","Anna Jantar",1974],["Motylem jestem","Irena Jarocka",1974],
+["Parostatek","Krzysztof Krawczyk",1976],["Zacznij od Bacha","Zbigniew Wodecki",1976],["Jadą wozy kolorowe","Maryla Rodowicz",1977],
+["Wsiąść do pociągu byle jakiego","Maryla Rodowicz",1978],["Nic nie może wiecznie trwać","Anna Jantar",1979],["Autobiografia","Perfect",1981],
+["Chcemy być sobą","Perfect",1981],["Jolka, Jolka pamiętasz","Budka Suflera",1982],["Mniej niż zero","Lady Pank",1983],
+["Kryzysowa narzeczona","Lady Pank",1983],["Biała flaga","Republika",1983],["Kocham cię, kochanie moje","Maanam",1983],
+["Konik na biegunach","Urszula",1983],["Whisky","Dżem",1983],["Niech żyje bal","Maryla Rodowicz",1984],["Jaka róża, taki cierń","Edyta Geppert",1984],
+["Przeżyj to sam","Lombard",1985],["Słodkiego miłego życia","Kombi",1985],["Zawsze tam gdzie ty","Lady Pank",1988],["Kochać inaczej","De Mono",1988],
+["Biała armia","Bajm",1990],["Baśka","Wilki",1992],["Teksański","Hey",1993],["To nie ja!","Edyta Górniak",1994],["Orła cień","Varius Manx",1994],
+["Takie tango","Budka Suflera",1997],["King","T.Love",1997],["Ściernisco","Golec uOrkiestra",1998],["Prawy do lewego","Kayah & Goran Bregović",1999],
+["Długość dźwięku samotności","Myslovitz",1999],["My Słowianie","Donatan & Cleo",2013],["Przez twe oczy zielone","Akcent",2015],
+["Małomiasteczkowy","Dawid Podsiadło",2018],["Solo","Blanka",2023]
+].map(([t,a,y])=>({t,a,y}));
+const FRS=[
+["Ne me quitte pas","Jacques Brel",1959],["Non, je ne regrette rien","Édith Piaf",1960],["Tous les garçons et les filles","Françoise Hardy",1962],
+["La plus belle pour aller danser","Sylvie Vartan",1964],["Nathalie","Gilbert Bécaud",1964],["La Bohème","Charles Aznavour",1965],
+["Poupée de cire, poupée de son","France Gall",1965],["Aline","Christophe",1965],["Mon crédo","Mireille Mathieu",1966],
+["Comme d'habitude","Claude François",1967],["Emmenez-moi","Charles Aznavour",1967],["Il est cinq heures, Paris s'éveille","Jacques Dutronc",1968],
+["Bonnie and Clyde","Serge Gainsbourg & Brigitte Bardot",1968],["Les Champs-Élysées","Joe Dassin",1969],["Que je t'aime","Johnny Hallyday",1969],
+["Pour un flirt","Michel Delpech",1971],["On ira tous au paradis","Michel Polnareff",1972],["Paroles, paroles","Dalida & Alain Delon",1973],
+["Gigi l'amoroso","Dalida",1974],["L'été indien","Joe Dassin",1975],["Ça plane pour moi","Plastic Bertrand",1977],["Rockollection","Laurent Voulzy",1977],
+["Alexandrie Alexandra","Claude François",1978],["Ma préférence","Julien Clerc",1978],["Born to Be Alive","Patrick Hernandez",1979],
+["Je l'aime à mourir","Francis Cabrel",1979],["Les lacs du Connemara","Michel Sardou",1981],["Quand la musique est bonne","Jean-Jacques Goldman",1982],
+["L'aventurier","Indochine",1982],["Un autre monde","Téléphone",1984],["Week-end à Rome","Étienne Daho",1984],["Je te donne","Jean-Jacques Goldman & Michael Jones",1985],
+["Mistral gagnant","Renaud",1985],["L'Aziza","Daniel Balavoine",1985],["Voyage, voyage","Desireless",1986],["Libertine","Mylène Farmer",1986],
+["Joe le taxi","Vanessa Paradis",1987],["Ella, elle l'a","France Gall",1987],["Mademoiselle chante le blues","Patricia Kaas",1987],
+["Lambada","Kaoma",1989],["Désenchantée","Mylène Farmer",1991],["Pour que tu m'aimes encore","Céline Dion",1995],
+["Allumer le feu","Johnny Hallyday",1998],["Music Sounds Better with You","Stardust",1998],["Sexy Boy","Air",1998],
+["One More Time","Daft Punk",2000],["Lady (Hear Me Tonight)","Modjo",2000],["Moi... Lolita","Alizée",2000],["Me gustas tú","Manu Chao",2001],
+["Le vent nous portera","Noir Désir",2001],["Love Generation","Bob Sinclar",2005],["D.A.N.C.E.","Justice",2007],["Alors on danse","Stromae",2009],
+["1901","Phoenix",2009],["Je veux","Zaz",2010],["Titanium","David Guetta feat. Sia",2011],["Papaoutai","Stromae",2013],
+["Dernière danse","Indila",2013],["Est-ce que tu m'aimes ?","Maître Gims",2015],["Djadja","Aya Nakamura",2018],
+["Balance ton quoi","Angèle",2019],["Voilà","Barbara Pravi",2021]
+].map(([t,a,y])=>({t,a,y}));
+const DE_ADD=[
+["Pigalle","Bill Ramsey",1961],["Junge, komm bald wieder","Freddy Quinn",1962],["Schuld war nur der Bossa Nova","Manuela",1963],
+["Liebeskummer lohnt sich nicht","Siw Malmkvist",1964],["Ganz in Weiß","Roy Black",1966],["Mama","Heintje",1967],["Schöne Maid","Tony Marshall",1971],
+["Fiesta Mexicana","Rex Gildo",1972],["Ein Festival der Liebe","Jürgen Marcus",1972],["Tränen lügen nicht","Michael Holm",1974],
+["Die kleine Kneipe","Peter Alexander",1976],["Moskau","Dschinghis Khan",1979],["Verdammt lang her","BAP",1981],["Polonäse Blankenese","Gottlieb Wendehals",1981],
+["Fred vom Jupiter","Andreas Dorau",1981],["Sommer in der Stadt","Spider Murphy Gang",1982],["Hohe Berge","Frl. Menke",1982],["Codo","DÖF",1983],
+["Bruttosozialprodukt","Geier Sturzflug",1983],["Wahnsinn","Wolfgang Petry",1983],["Bochum","Herbert Grönemeyer",1984],
+["Irgendwie, irgendwo, irgendwann","Nena",1984],["Küssen verboten","Die Prinzen",1992],["Alles nur geklaut","Die Prinzen",1993],["MfG","Die Fantastischen Vier",1999],
+["Liebe ist alles","Rosenstolz",2004],["Nur ein Wort","Wir sind Helden",2005],["Dieser Weg","Xavier Naidoo",2005],["Ein Stern (... der deinen Namen trägt)","DJ Ötzi & Nik P.",2007],
+["Haus am See","Peter Fox",2008],["Alles neu","Peter Fox",2008],["Ein Hoch auf uns","Andreas Bourani",2014],["Wolke 4","Philipp Dittberner & Marv",2015],
+["Was du Liebe nennst","Bausa",2017]
+].map(([t,a,y])=>({t,a,y}));
+const DE_BASE_TITLES=new Set(["Ein Schiff wird kommen","Da sprach der alte Häuptling der Indianer","Marmor, Stein und Eisen bricht","Mendocino","Wunder gibt es immer wieder",
+"Griechischer Wein","Über den Wolken","Theo, wir fahr'n nach Lodz","Autobahn","Er gehört zu mir","Ein Bett im Kornfeld","Aber bitte mit Sahne","Alt wie ein Baum","Mit 66 Jahren",
+"Kreuzberger Nächte","Dschinghis Khan","Skandal im Sperrbezirk","Da Da Da","Ein bißchen Frieden","Ich will Spaß","Sternenhimmel","Ich war noch niemals in New York",
+"99 Luftballons","Major Tom (Völlig losgelöst)","Sonderzug nach Pankow","Männer","Rock Me Amadeus","Ohne Dich (schlaf' ich heut' Nacht nicht ein)","Tausendmal du","Westerland",
+"Verdammt, ich lieb' dich","Die da!?!","Schrei nach Liebe","Zehn kleine Jägermeister","Männer sind Schweine","Anton aus Tirol","Mensch","Geile Zeit","Perfekte Welle",
+"Durch den Monsun","Junge","Tage wie diese","Bilder im Kopf","Atemlos durch die Nacht","Applaus, Applaus","Auf uns","Lieblingsmensch","Astronaut","Hurra die Welt geht unter",
+"Chöre","Cordula Grün","Roller","Layla","Wildberry Lillet","Komet"]);
+const INT_TITLES=new Set(["(I Can't Get No) Satisfaction","Hey Jude","Imagine","Bohemian Rhapsody","Dancing Queen","Stayin' Alive","I Will Survive","Billie Jean","Take On Me",
+"Sweet Dreams (Are Made of This)","Like a Prayer","Smells Like Teen Spirit","Wonderwall","Wannabe","...Baby One More Time","Hey Ya!","Crazy in Love","Umbrella",
+"Rolling in the Deep","Get Lucky","Uptown Funk","Shape of You","Blinding Lights","Flowers","Espresso"]);
+const PL_ADD=[
+["Kochać","Piotr Szczepanik",1963],["Nie zadzieraj nosa","Czerwone Gitary",1966],["Anna Maria","Czerwone Gitary",1969],["Zegarmistrz światła","Tadeusz Woźniak",1972],
+["Gdzie się podziały tamte prywatki","Wojciech Gąssowski",1975],["Cień wielkiej góry","Budka Suflera",1975],["Kolorowe jarmarki","Maryla Rodowicz",1977],
+["Bananowy song","Vox",1980],["Nie płacz Ewka","Perfect",1981],["Boskie Buenos","Maanam",1981],["Cykady na Cykladach","Maanam",1983],
+["Chałupy Welcome To","Zbigniew Wodecki",1985],["Zaopiekuj się mną","Rezerwat",1985],["Arahja","Kult",1988],["Kocham cię jak Irlandię","Kobranocka",1989],
+["Dziewczyny lubią brąz","Ryszard Rynkowski",1990],["Co mi Panie dasz","Bajm",1991],["Dmuchawce, latawce, wiatr","Urszula",1996],["Jesteś szalona","Boys",1997],
+["Bo jesteś Ty","Krzysztof Krawczyk",2000],["Bal wszystkich świętych","Budka Suflera",2000],["Powiedz","Ich Troje",2001],
+["Chciałbym umrzeć z miłości","Myslovitz",2002],["Jak zapomnieć","Jeden Osiem L",2004],["Ona tańczy dla mnie","Weekend",2012],["Ruda tańczy jak szalona","Czadoman",2014]
+].map(([t,a,y])=>({t,a,y}));
+const FR_ADD=[
+["La Mer","Charles Trenet",1946],["La vie en rose","Édith Piaf",1947],["Le Sud","Nino Ferrer",1975],["Le Chanteur","Daniel Balavoine",1978],
+["Il jouait du piano debout","France Gall",1980],["Résiste","France Gall",1981],["Pour le plaisir","Herbert Léonard",1981],["Femme libérée","Cookie Dingler",1984],
+["Partenaire particulier","Partenaire Particulier",1985],["Les Démons de minuit","Images",1986],["Il me dit que je suis belle","Patricia Kaas",1993],
+["Foule sentimentale","Alain Souchon",1993],["Belle","Garou, Daniel Lavoie & Patrick Fiori",1998],["Ces soirées-là","Yannick",2000],
+["Tout le bonheur du monde","Sinsemilia",2004],["Formidable","Stromae",2013]
+].map(([t,a,y])=>({t,a,y}));
+const EXO=[
+// Japan
+["Ringo Oiwake","Hibari Misora",1952],["Ue o muite arukō (Sukiyaki)","Kyu Sakamoto",1961],["Yume no Naka e","Yōsui Inoue",1973],
+["Mayonaka no Door (Stay With Me)","Miki Matsubara",1979],["Rydeen","Yellow Magic Orchestra",1980],["Kokoro no Tomo","Mayumi Itsuwa",1982],
+["Plastic Love","Mariya Takeuchi",1984],["Kimi wa 1000%","1986 Omega Tribe",1986],["Linda Linda","The Blue Hearts",1987],["Tonari no Totoro","Azumi Inoue",1988],
+["Kawa no Nagare no Yō ni","Hibari Misora",1989],["Cha-La Head-Cha-La","Hironobu Kageyama",1989],["Odoru Ponpokorin","B.B.Queens",1990],
+["Zankoku na Tenshi no Tēze","Yoko Takahashi",1995],["Sobakasu","Judy and Mary",1996],["Automatic","Hikaru Utada",1998],["First Love","Hikaru Utada",1999],
+["Butter-Fly","Kōji Wada",1999],["Tsunami","Southern All Stars",2000],["Kaze ni Naru","Ayano Tsuji",2002],["Sekai ni Hitotsu dake no Hana","SMAP",2003],
+["Hanamizuki","Yō Hitoto",2004],["PONPONPON","Kyary Pamyu Pamyu",2011],["Guren no Yumiya","Linked Horizon",2013],["Gimme Chocolate!!","Babymetal",2014],
+["Unravel","TK from Ling Tosite Sigure",2014],["Koi","Gen Hoshino",2016],["Lemon","Kenshi Yonezu",2018],["Gurenge","LiSA",2019],["Pretender","Official Hige Dandism",2019],
+["Yoru ni Kakeru","YOASOBI",2019],["Idol","YOASOBI",2023],["Bling-Bang-Bang-Born","Creepy Nuts",2024],
+// Korea
+["Nan Arayo","Seo Taiji and Boys",1992],["Nobody","Wonder Girls",2008],["Gee","Girls' Generation",2009],["Sorry, Sorry","Super Junior",2009],
+["Fantastic Baby","Big Bang",2012],["Gangnam Style","PSY",2012],["Gentleman","PSY",2013],["Fake Love","BTS",2018],["Ddu-Du Ddu-Du","Blackpink",2018],
+["Kill This Love","Blackpink",2019],["Next Level","aespa",2021],["Love Dive","Ive",2022],["Hype Boy","NewJeans",2022],
+// China & Südostasien & Pazifik
+["Bengawan Solo","Gesang",1940],["Yue Liang Dai Biao Wo De Xin","Teresa Teng",1977],["Tian Mi Mi","Teresa Teng",1979],["Anak","Freddie Aguilar",1978],
+["Poi E","Patea Māori Club",1984],["Treaty","Yothu Yindi",1991],["Over the Rainbow / What a Wonderful World","Israel Kamakawiwoʻole",1993],
+["Lao Shu Ai Da Mi","Yang Chengang",2004],["Xiao Pingguo","Chopsticks Brothers",2014],
+// Indien & Pakistan
+["Mera Joota Hai Japani","Mukesh",1955],["Pyar Kiya To Darna Kya","Lata Mangeshkar",1960],["Dum Maro Dum","Asha Bhosle",1971],
+["Jimmy Jimmy Aaja Aaja","Parvati Khan",1982],["Afreen Afreen","Nusrat Fateh Ali Khan",1996],["Tunak Tunak Tun","Daler Mehndi",1998],
+["Mundian To Bach Ke","Panjabi MC",1998],["Chaiyya Chaiyya","Sukhwinder Singh & Sapna Awasthi",1998],["Kal Ho Naa Ho","Sonu Nigam",2003],
+["Kajra Re","Alisha Chinai, Shankar Mahadevan & Javed Ali",2005],["Jai Ho","A. R. Rahman",2008],["Tum Hi Ho","Arijit Singh",2013],
+["Naatu Naatu","Rahul Sipligunj & Kaala Bhairava",2022],["Kesariya","Arijit Singh",2022],["Pasoori","Ali Sethi & Shae Gill",2022],
+// Zentralasien
+["Kongurei","Huun-Huur-Tu",1993],["Yuve Yuve Yu","The HU",2018],["Wolf Totem","The HU",2019],
+// Naher Osten & Nordafrika
+["Ya Mustafa","Bob Azzam",1960],["Enta Omri","Umm Kulthum",1964],["Hallelujah","Gali Atari & Milk and Honey",1979],["A-Ba-Ni-Bi","Izhar Cohen & Alphabeta",1978],
+["Im Nin'alu","Ofra Haza",1984],["Didi","Khaled",1992],["Aïcha","Khaled",1996],["Nour El Ein","Amr Diab",1996],["Ya Rayah","Rachid Taha",1997],
+["Tamally Maak","Amr Diab",2000],["Ah W Noss","Nancy Ajram",2004],["Boshret Kheir","Hussain Al Jassmi",2014],["Lm3allem","Saad Lamjarred",2015],["3 Daqat","Abu feat. Yousra",2017],
+// Türkei & Griechenland & Balkan
+["Ta paidia tou Peiraia","Melina Mercouri",1960],["Zorba's Dance","Mikis Theodorakis",1964],["Arkadaşım Eşek","Barış Manço",1981],["Gülpembe","Barış Manço",1985],
+["Ederlezi","Goran Bregović",1988],["Đurđevdan","Bijelo Dugme",1988],["Hadi Bakalım","Sezen Aksu",1991],["Kalashnikov","Goran Bregović",1995],
+["Mesečina","Goran Bregović",1995],["Şımarık","Tarkan",1997],["Kuzu Kuzu","Tarkan",2001],["Dudu","Tarkan",2003],["Lane moje","Željko Joksimović",2004],
+["Lejla","Hari Mata Hari",2006],["Molitva","Marija Šerifović",2007],["Bir Derdim Var","mor ve ötesi",2008],["Opa","Giorgos Alkaios & Friends",2010],
+// Osteuropa
+["Podmoskovnye vechera","Vladimir Troshin",1956],["Lady Carneval","Karel Gott",1968],["Jožin z bažin","Ivan Mládek",1978],["Million alykh roz","Alla Pugacheva",1982],
+["Gruppa krovi","Kino",1988],["Zvezda po imeni Solntse","Kino",1989],["Ya soshla s uma","t.A.T.u.",2000],["Nas ne dogonyat","t.A.T.u.",2001],
+["Dragostea din tei","O-Zone",2003],["Wild Dances","Ruslana",2004],["Dancing Lasha Tumbai","Verka Serduchka",2007],["Shum","Go_A",2021],["Stefania","Kalush Orchestra",2022],
+// Afrika
+["Mbube","Solomon Linda",1939],["Pata Pata","Miriam Makeba",1967],["Soul Makossa","Manu Dibango",1972],["Yèkèrmo Sèw","Mulatu Astatke",1972],
+["Water No Get Enemy","Fela Kuti",1975],["Zombie","Fela Kuti",1976],["Sweet Mother","Prince Nico Mbarga",1976],["Sunshine Day","Osibisa",1976],
+["Scatterlings of Africa","Juluka",1982],["Utrus Horas","Orchestra Baobab",1982],["Zouk-la sé sèl médikaman nou ni","Kassav'",1984],
+["Mario","Franco & TPOK Jazz",1985],["Yé ké yé ké","Mory Kanté",1987],["Asimbonanga","Johnny Clegg & Savuka",1987],["Batonga","Angélique Kidjo",1991],
+["Sodade","Cesária Évora",1992],["Neria","Oliver Mtukudzi",1992],["Agolo","Angélique Kidjo",1994],["7 Seconds","Youssou N'Dour & Neneh Cherry",1994],
+["Ai Du","Ali Farka Touré & Ry Cooder",1994],["Vulindlela","Brenda Fassie",1998],["Premier gaou","Magic System",1999],["Madan","Salif Keita",2002],
+["Dimanche à Bamako","Amadou & Mariam",2004],["Cler Achel","Tinariwen",2007],["Sitya Loss","Eddy Kenzo",2014],["Fall","Davido",2017],["Ye","Burna Boy",2018],
+["Jerusalema","Master KG feat. Nomcebo",2019],["Essence","Wizkid feat. Tems",2020],["Calm Down","Rema",2022],
+// Brasilien & Portugal
+["Barco negro","Amália Rodrigues",1955],["Chega de saudade","João Gilberto",1958],["Mas que nada","Jorge Ben",1963],["País tropical","Jorge Ben",1969],
+["Grândola, Vila Morena","Zeca Afonso",1971],["Taj Mahal","Jorge Ben",1972],["Águas de março","Elis Regina & Tom Jobim",1974],["Ilariê","Xuxa",1988],
+["Lambada","Kaoma",1989],["Magalenha","Sérgio Mendes",1992],["Canção do mar","Dulce Pontes",1993],["Tic Tic Tac","Carrapicho",1996],
+["Ai se eu te pego","Michel Teló",2011],["Show das Poderosas","Anitta",2013],["Amar pelos dois","Salvador Sobral",2017],
+// Irland
+["The Wild Rover","The Dubliners",1964],["Seven Drunken Nights","The Dubliners",1967],["Whiskey in the Jar","Thin Lizzy",1972],
+["The Boys Are Back in Town","Thin Lizzy",1976],["Teenage Kicks","The Undertones",1978],["I Don't Like Mondays","The Boomtown Rats",1979],
+["What's Another Year","Johnny Logan",1980],["Theme from Harry's Game","Clannad",1982],["The Fields of Athenry","Paddy Reilly",1982],
+["Sunday Bloody Sunday","U2",1983],["Dirty Old Town","The Pogues",1985],["With or Without You","U2",1987],["Hold Me Now","Johnny Logan",1987],
+["Fairytale of New York","The Pogues feat. Kirsty MacColl",1987],["Orinoco Flow","Enya",1988],["Nothing Compares 2 U","Sinéad O'Connor",1990],
+["Dreams","The Cranberries",1992],["Linger","The Cranberries",1993],["Zombie","The Cranberries",1994],["Rock 'n' Roll Kids","Paul Harrington & Charlie McGettigan",1994],
+["Riverdance","Bill Whelan",1994],["Runaway","The Corrs",1995],["Only Time","Enya",2000],["Breathless","The Corrs",2000],["Take Me to Church","Hozier",2013],
+// Nordeuropa
+["Satumaa","Reijo Taipale",1962],["Dansevise","Grethe & Jørgen Ingmann",1963],["Det börjar verka kärlek, banne mej","Claes-Göran Hederström",1968],
+["Här kommer Pippi Långstrump","Inger Nilsson",1969],["Kvinde min","Gasolin'",1974],["Murheellisten laulujen maa","Eppu Normaali",1982],
+["Främling","Carola",1983],["Midt om natten","Kim Larsen",1983],["Diggi-Loo Diggi-Ley","Herreys",1984],["La det swinge","Bobbysocks",1985],
+["Ammæli","The Sugarcubes",1986],["Gula Gula","Mari Boine",1989],["Fångad av en stormvind","Carola",1991],["Ievan Polkka","Loituma",1995],
+["Nocturne","Secret Garden",1995],["Sandstorm","Darude",1999],["Svefn-g-englar","Sigur Rós",1999],["Det gör ont","Lena Philipsson",2004],
+["Hoppípolla","Sigur Rós",2005],["Trøllabundin","Eivør",2005],["Kun for mig","Medina",2008],["Hatrið mun sigra","Hatari",2019],["Cha Cha Cha","Käärijä",2023]
+].map(([t,a,y])=>({t,a,y}));
+
+
+const SUED = [
+// Italienisch
+["Nel blu dipinto di blu","Domenico Modugno",1958],["Tintarella di luna","Mina",1959],["Il cielo in una stanza","Mina",1960],
+["24.000 baci","Adriano Celentano",1961],["Senza fine","Gino Paoli",1961],["Quando quando quando","Tony Renis",1962],
+["Fatti mandare dalla mamma","Gianni Morandi",1962],["Sapore di sale","Gino Paoli",1963],["Una lacrima sul viso","Bobby Solo",1964],
+["Non ho l'età","Gigliola Cinquetti",1964],["In ginocchio da te","Gianni Morandi",1964],["Il mondo","Jimmy Fontana",1965],
+["Io che non vivo","Pino Donaggio",1965],["Il ragazzo della via Gluck","Adriano Celentano",1966],["Nessuno mi può giudicare","Caterina Caselli",1966],
+["Ciao amore, ciao","Luigi Tenco",1967],["Azzurro","Adriano Celentano",1968],["La bambola","Patty Pravo",1968],
+["Insieme a te non ci sto più","Caterina Caselli",1968],["Acqua azzurra, acqua chiara","Lucio Battisti",1969],["Rose rosse","Massimo Ranieri",1969],
+["Emozioni","Lucio Battisti",1970],["La canzone del sole","Lucio Battisti",1971],["Pensiero","Pooh",1971],["Tanta voglia di lei","Pooh",1971],
+["Il cuore è uno zingaro","Nicola Di Bari",1971],["Il mio canto libero","Lucio Battisti",1972],["Grande grande grande","Mina",1972],
+["Parole parole","Mina & Alberto Lupo",1972],["Piccolo grande amore","Claudio Baglioni",1972],["Piazza Grande","Lucio Dalla",1972],
+["Pazza idea","Patty Pravo",1973],["Minuetto","Mia Martini",1973],["Bella senz'anima","Riccardo Cocciante",1974],
+["Ma il cielo è sempre più blu","Rino Gaetano",1975],["Margherita","Riccardo Cocciante",1976],["Ancora tu","Lucio Battisti",1976],
+["Svalutation","Adriano Celentano",1976],["Ti amo","Umberto Tozzi",1977],["Gianna","Rino Gaetano",1978],["Generale","Francesco De Gregori",1978],
+["Una donna per amico","Lucio Battisti",1978],["Gloria","Umberto Tozzi",1979],["Albachiara","Vasco Rossi",1979],["L'anno che verrà","Lucio Dalla",1979],
+["Gelato al cioccolato","Pupo",1979],["Splendido splendente","Donatella Rettore",1979],["Su di noi","Pupo",1980],["Il tempo se ne va","Adriano Celentano",1980],
+["Kobra","Donatella Rettore",1980],["Sarà perché ti amo","Ricchi e Poveri",1981],["Per Elisa","Alice",1981],["Maledetta primavera","Loretta Goggi",1981],
+["Siamo solo noi","Vasco Rossi",1981],["Felicità","Al Bano & Romina Power",1982],["Mamma Maria","Ricchi e Poveri",1982],["L'italiano","Toto Cutugno",1983],
+["Vamos a la playa","Righeira",1983],["Vita spericolata","Vasco Rossi",1983],["La donna cannone","Francesco De Gregori",1983],
+["Vacanze romane","Matia Bazar",1983],["Amore disperato","Nada",1983],["Ci sarà","Al Bano & Romina Power",1984],["Terra promessa","Eros Ramazzotti",1984],
+["Notte prima degli esami","Antonello Venditti",1984],["Una storia importante","Eros Ramazzotti",1985],["Ti sento","Matia Bazar",1985],
+["Caruso","Lucio Dalla",1986],["Adesso tu","Eros Ramazzotti",1986],["Bello e impossibile","Gianna Nannini",1986],
+["Si può dare di più","Gianni Morandi, Enrico Ruggeri & Umberto Tozzi",1987],["Quello che le donne non dicono","Fiorella Mannoia",1987],
+["Perdere l'amore","Massimo Ranieri",1988],["Almeno tu nell'universo","Mia Martini",1989],["Cosa resterà degli anni '80","Raf",1989],
+["Un'estate italiana","Edoardo Bennato & Gianna Nannini",1990],["Se bastasse una canzone","Eros Ramazzotti",1990],["Balliamo sul mondo","Ligabue",1990],
+["Hanno ucciso l'Uomo Ragno","883",1992],["Ragazzo fortunato","Jovanotti",1992],["Mare mare","Luca Carboni",1992],["Sei un mito","883",1993],
+["La solitudine","Laura Pausini",1993],["Non c'è","Laura Pausini",1993],["Strani amori","Laura Pausini",1994],["E poi","Giorgia",1994],
+["Con te partirò","Andrea Bocelli",1995],["Certe notti","Ligabue",1995],["L'ombelico del mondo","Jovanotti",1995],["Gli anni","883",1995],
+["Come saprei","Giorgia",1995],["Più bella cosa","Eros Ramazzotti",1996],["Sally","Vasco Rossi",1996],["Laura non c'è","Nek",1997],["Bella","Jovanotti",1997],
+["L'emozione non ha voce","Adriano Celentano",1999],["Tre parole","Valeria Rossi",2001],["Perdono","Tiziano Ferro",2001],
+["Meravigliosa creatura","Gianna Nannini",2004],["A te","Jovanotti",2008],["L'essenziale","Marco Mengoni",2013],["Tutto molto interessante","Fabio Rovazzi",2016],
+["Occidentali's Karma","Francesco Gabbani",2017],["Una vita in vacanza","Lo Stato Sociale",2018],["Soldi","Mahmood",2019],["Fai rumore","Diodato",2020],
+["Zitti e buoni","Måneskin",2021],["Mille","Fedez, Achille Lauro & Orietta Berti",2021],["Musica leggerissima","Colapesce & Dimartino",2021],
+["Brividi","Mahmood & Blanco",2022],["Ciao ciao","La Rappresentante di Lista",2022],["Due vite","Marco Mengoni",2023],
+["Tuta gold","Mahmood",2024],["La noia","Angelina Mango",2024],
+// Spanischsprachig
+["La Bamba","Ritchie Valens",1958],["Tómbola","Marisol",1962],["Corazón contento","Marisol",1968],["Un rayo de sol","Los Diablos",1970],
+["Te quiero, te quiero","Nino Bravo",1970],["Oye como va","Santana",1970],["El triste","José José",1970],["Soy rebelde","Jeanette",1971],
+["Mediterráneo","Joan Manuel Serrat",1971],["Libre","Nino Bravo",1972],["Un beso y una flor","Nino Bravo",1972],["Eres tú","Mocedades",1973],
+["Eva María","Fórmula V",1973],["Y viva España","Manolo Escobar",1973],["Porque te vas","Jeanette",1974],["Me olvidé de vivir","Julio Iglesias",1978],
+["Soy un truhán, soy un señor","Julio Iglesias",1978],["Vivir así es morir de amor","Camilo Sesto",1978],["La chica de ayer","Nacha Pop",1980],
+["Hey!","Julio Iglesias",1980],["Bailando","Alaska y los Pegamoides",1982],["Amor de hombre","Mocedades",1982],["Mil horas","Los Abuelos de la Nada",1983],
+["Devuélveme a mi chica","Hombres G",1985],["Hijo de la luna","Mecano",1986],["A quién le importa","Alaska y Dinarama",1986],
+["Persiana americana","Soda Stereo",1986],["Bamboléo","Gipsy Kings",1987],["Ojalá que llueva café","Juan Luis Guerra",1989],
+["Burbujas de amor","Juan Luis Guerra",1990],["De música ligera","Soda Stereo",1990],["Rayando el sol","Maná",1990],["Bandido","Azúcar Moreno",1990],
+["Vivir sin aire","Maná",1992],["Como la flor","Selena",1992],["Macarena","Los del Río",1993],["Mi tierra","Gloria Estefan",1993],
+["Bidi bidi bom bom","Selena",1994],["Amor prohibido","Selena",1994],["María","Ricky Martin",1995],["Estoy aquí","Shakira",1995],
+["La flaca","Jarabe de Palo",1996],["Corazón partío","Alejandro Sanz",1997],["Clavado en un bar","Maná",1997],["La copa de la vida","Ricky Martin",1998],
+["Ojos así","Shakira",1998],["La vida es un carnaval","Celia Cruz",1998],["Clandestino","Manu Chao",1998],["Suavemente","Elvis Crespo",1998],
+["Corazón espinado","Santana feat. Maná",1999],["Sobreviviré","Mónica Naranjo",2000],["Me gustas tú","Manu Chao",2001],["A Dios le pido","Juanes",2002],
+["Aserejé","Las Ketchup",2002],["Obsesión","Aventura",2002],["Ave María","David Bisbal",2002],["Torero","Chayanne",2002],
+["Gasolina","Daddy Yankee",2004],["Bulería","David Bisbal",2004],["Malo","Bebe",2004],["La camisa negra","Juanes",2005],
+["La tortura","Shakira feat. Alejandro Sanz",2005],["Labios compartidos","Maná",2006],["Ni una sola palabra","Paulina Rubio",2006],
+["Danza Kuduro","Don Omar & Lucenzo",2010],["Corre","Jesse & Joy",2011],["Vivir mi vida","Marc Anthony",2013],["Propuesta indecente","Romeo Santos",2013],
+["Bailando","Enrique Iglesias feat. Descemer Bueno & Gente de Zona",2014],["El perdón","Nicky Jam & Enrique Iglesias",2015],
+["La gozadera","Gente de Zona feat. Marc Anthony",2015],["Chantaje","Shakira feat. Maluma",2016],["La bicicleta","Carlos Vives & Shakira",2016],
+["Duele el corazón","Enrique Iglesias feat. Wisin",2016],["Despacito","Luis Fonsi feat. Daddy Yankee",2017],["Mi gente","J Balvin & Willy William",2017],
+["Súbeme la radio","Enrique Iglesias",2017],["Felices los 4","Maluma",2017],["Robarte un beso","Carlos Vives & Sebastián Yatra",2017],
+["Mayores","Becky G feat. Bad Bunny",2017],["Malamente","Rosalía",2018],["Calma","Pedro Capó",2018],["Con altura","Rosalía & J Balvin",2019],
+["Dákiti","Bad Bunny & Jhay Cortez",2020],["Hawái","Maluma",2020],["Bichota","Karol G",2020],["Tacones rojos","Sebastián Yatra",2021],
+["Tití me preguntó","Bad Bunny",2022],["Despechá","Rosalía",2022],["Provenza","Karol G",2022],["SloMo","Chanel",2022],
+["Quevedo: Bzrp Music Sessions, Vol. 52","Bizarrap & Quevedo",2022],["Shakira: Bzrp Music Sessions, Vol. 53","Bizarrap & Shakira",2023],
+["Ella baila sola","Eslabon Armado & Peso Pluma",2023],["Zorra","Nebulossa",2024],
+// Welt (ohne EN/IT/ES/DE/FR/PL)
+["Chega de saudade","João Gilberto",1958],["Ta paidia tou Peiraia","Melina Mercouri",1960],["Ue o muite arukō (Sukiyaki)","Kyu Sakamoto",1961],
+["Mas que nada","Jorge Ben",1963],["Pata Pata","Miriam Makeba",1967],["País tropical","Jorge Ben",1969],["Soul Makossa","Manu Dibango",1972],
+["Taj Mahal","Jorge Ben",1972],["Águas de março","Elis Regina & Tom Jobim",1974],["Million alykh roz","Alla Pugacheva",1982],
+["Främling","Carola",1983],["Diggi-Loo Diggi-Ley","Herreys",1984],["Plastic Love","Mariya Takeuchi",1984],["Yé ké yé ké","Mory Kanté",1987],
+["Lambada","Kaoma",1989],["Didi","Khaled",1992],["Dromen zijn bedrog","Marco Borsato",1994],["Het is een nacht","Guus Meeuwis",1995],
+["Nour El Ein","Amr Diab",1996],["Tic Tic Tac","Carrapicho",1996],["Şımarık","Tarkan",1997],["Ya Rayah","Rachid Taha",1997],
+["Tunak Tunak Tun","Daler Mehndi",1998],["Chaiyya Chaiyya","A. R. Rahman",1998],["Ya soshla s uma","t.A.T.u.",2000],["Nas ne dogonyat","t.A.T.u.",2001],
+["Kuzu Kuzu","Tarkan",2001],["Dudu","Tarkan",2003],["Dragostea din tei","O-Zone",2003],["Molitva","Marija Šerifović",2007],
+["Jai Ho","A. R. Rahman",2008],["Gee","Girls' Generation",2009],["Ai se eu te pego","Michel Teló",2011],["Gangnam Style","PSY",2012],
+["Show das Poderosas","Anitta",2013],["Amar pelos dois","Salvador Sobral",2017],["Fake Love","BTS",2018],["Jerusalema","Master KG feat. Nomcebo",2019],
+["Gurenge","LiSA",2019],["Hatrið mun sigra","Hatari",2019],["Stefania","Kalush Orchestra",2022],["Cha Cha Cha","Käärijä",2023],["Idol","YOASOBI",2023]
+].map(([t,a,y])=>({t,a,y}));
+const EUROPA=[...BUILTIN.filter(s=>DE_BASE_TITLES.has(s.t)),...DE_ADD,...PLS,...PL_ADD,...FRS,...FR_ADD,...BUILTIN.filter(s=>INT_TITLES.has(s.t))];
+const PACKS={
+  standard:{name:"Standard",songs:BUILTIN,info:"internationale und deutsche Hits"},
+  europa:{name:"Frankreich · Polen · Deutschland",songs:EUROPA,info:"je ca. 30 % französisch, polnisch, deutsch, dazu 10 % internationale Hits"},
+  sued:{name:"Süden & Welt",songs:SUED,info:"italienisch, spanischsprachig, Weltmusik – ohne Englisch"},
+  exotisch:{name:"Exotisch",songs:EXO,info:"Japan, Korea, Asien, Indien, Afrika, Orient, Balkan, Osteuropa, Brasilien, Irland, Nordeuropa"}
+};
+
+const KEY_CUSTOM="hz-custom-v1", KEY_GAME="hz-game-v2";
+const load=(k,d)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}};
+const save=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+
+let custom=load(KEY_CUSTOM,[]);
+let S=load(KEY_GAME,null);
+let setup={n1:"Team 1",n2:"Team 2",target:10,useBuiltin:true,useCustom:true,pack:"standard"};
+const app=document.getElementById("app");
+
+function ytLink(s){
+  if(s.u) return s.u;
+  return "https://music.youtube.com/search?q="+encodeURIComponent(s.a+" "+s.t);
+}
+function parseCustom(text){
+  const out=[],bad=[];
+  text.split(/\r?\n/).forEach(line=>{
+    if(!line.trim())return;
+    const p=line.split(/\s*[;|\t]\s*/);
+    const y=parseInt(p[2],10);
+    if(p.length>=3&&p[0]&&p[1]&&y>=1900&&y<=2100){
+      const u=(p[3]||"").trim();
+      out.push({a:p[0].trim(),t:p[1].trim(),y,u:/^https:\/\/(www\.|m\.|music\.)?(youtube\.com|youtu\.be)\//.test(u)?u:""});
+    } else bad.push(line);
+  });
+  return {out,bad};
+}
+
+/* ---------- Setup ---------- */
+function renderSetup(msg=""){
+  app.innerHTML=`
+  <header style="display:flex;flex-direction:column;gap:6px">
+    <span class="label">Musik-Quiz · 2 Teams</span>
+    <h1>Hit-Zeitstrahl</h1>
+    <p class="muted" style="margin:0">Song hören, beide Teams ordnen ihn gleichzeitig im eigenen Zeitstrahl ein. Wer zuerst die Zielzahl an Karten hat, gewinnt.</p>
+  </header>
+  ${S&&!S.winner?`<div class="panel"><div><strong>Laufendes Spiel gefunden</strong><div class="muted">${esc(S.teams[0].name)} ${S.teams[0].cards.length} : ${S.teams[1].cards.length} ${esc(S.teams[1].name)}</div></div>
+    <button id="resume">Spiel fortsetzen</button></div>`:""}
+  <section class="panel">
+    <h2>Teams</h2>
+    <div class="row">
+      <label class="field">Team A<input type="text" id="n1" value="${esc(setup.n1)}" maxlength="24"></label>
+      <label class="field">Team B<input type="text" id="n2" value="${esc(setup.n2)}" maxlength="24"></label>
+    </div>
+    <label class="field">Karten zum Sieg
+      <select id="target">${[5,8,10,12,15].map(n=>`<option ${n==setup.target?"selected":""}>${n}</option>`).join("")}</select>
+    </label>
+  </section>
+  <section class="panel">
+    <h2>Songs</h2>
+    <label class="field">Songpaket
+      <select id="pack">${Object.entries(PACKS).map(([k,p])=>`<option value="${k}" ${setup.pack===k?"selected":""}>${p.name} (${p.songs.length} Songs)</option>`).join("")}</select>
+    </label>
+    <p class="hint" style="margin:0">${(()=>{const p=PACKS[setup.pack];return p.info+" · "+Math.min(...p.songs.map(s=>s.y))+"–"+Math.max(...p.songs.map(s=>s.y))})()}</p>
+    <label class="check"><input type="checkbox" id="ub" ${setup.useBuiltin?"checked":""}> Songpaket verwenden</label>
+    <label class="check"><input type="checkbox" id="uc" ${setup.useCustom?"checked":""}> Eigene Songs (${custom.length})</label>
+  </section>
+  <section class="panel">
+    <h2>Eigene Songs ergänzen</h2>
+    <p class="hint" style="margin:0">Eine Zeile pro Song: <code>Interpret; Titel; Jahr; YouTube-Link (optional)</code>. Abgespielt wird die 30-Sekunden-Vorschau von iTunes. Der Link ist optional und dient als Ausweich, falls keine Vorschau gefunden wird.</p>
+    <textarea id="ctext" placeholder="Helene Fischer; Atemlos durch die Nacht; 2013&#10;Queen; We Will Rock You; 1977; https://www.youtube.com/watch?v=..."></textarea>
+    <div class="row" style="flex-wrap:wrap">
+      <button class="small" id="cadd">Songs hinzufügen</button>
+      <button class="small ghost" id="cclear" ${custom.length?"":"disabled"}>Eigene Songs löschen</button>
+    </div>
+    ${msg?`<div class="hint" role="status">${msg}</div>`:""}
+    ${custom.length?`<details><summary class="muted">Liste anzeigen (${custom.length})</summary><div style="display:flex;flex-direction:column;gap:4px;margin-top:8px">${custom.map(s=>`<div style="font-size:.9rem"><span style="font-family:var(--f-mono)">${s.y}</span> · ${esc(s.a)} – ${esc(s.t)}</div>`).join("")}</div></details>`:""}
+  </section>
+  <button id="start" style="padding:16px">Neues Spiel starten</button>`;
+  const sync=()=>{setup.pack=document.getElementById("pack").value;setup.n1=n1.value.trim()||"Team 1";setup.n2=n2.value.trim()||"Team 2";setup.target=+target.value;setup.useBuiltin=ub.checked;setup.useCustom=uc.checked};
+  const {n1,n2,target,ub,uc}=Object.fromEntries(["n1","n2","target","ub","uc"].map(id=>[id,document.getElementById(id)]));
+  document.getElementById("cadd").onclick=()=>{sync();const {out,bad}=parseCustom(document.getElementById("ctext").value);
+    custom=custom.concat(out);save(KEY_CUSTOM,custom);
+    renderSetup(`${out.length} Song(s) hinzugefügt.`+(bad.length?` ${bad.length} Zeile(n) nicht erkannt – Format prüfen: Interpret; Titel; Jahr.`:""))};
+  document.getElementById("cclear").onclick=e=>{sync();if(e.target.dataset.c){custom=[];save(KEY_CUSTOM,custom);renderSetup("Eigene Songs gelöscht.")}else{e.target.dataset.c=1;e.target.textContent="Wirklich löschen?"}};
+  document.getElementById("start").onclick=()=>{sync();startGame()};
+  document.getElementById("pack").onchange=()=>{sync();renderSetup()};
+  const r=document.getElementById("resume"); if(r) r.onclick=renderGame;
+}
+
+function startGame(){
+  let pool=[];
+  if(setup.useBuiltin)pool=pool.concat(PACKS[setup.pack].songs);
+  if(setup.useCustom)pool=pool.concat(custom);
+  if(pool.length<setup.target*2+6){renderSetup(`Zu wenige Songs (${pool.length}). Für ${setup.target} Karten pro Team mindestens ${setup.target*2+6} Songs nötig.`);return}
+  const deck=shuffle(pool.map(s=>({...s})));
+  S={teams:[{name:setup.n1,cards:[deck.pop()]},{name:setup.n2,cards:[deck.pop()]}],
+     target:setup.target,deck,current:deck.pop(),slots:[null,null],phase:"guess",ok:[null,null],round:1,tiebreak:false,winner:null};
+  save(KEY_GAME,S);renderGame();
+}
+
+
+/* ---------- Verdeckter Player (iTunes-Vorschau) ---------- */
+const audio=new Audio(); audio.preload="auto";
+const pcache={}; let loadedKey=null;
+const keyOf=s=>s.a+"|"+s.t;
+const $=id=>document.getElementById(id);
+const norm=x=>String(x).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/\(.*?\)|\[.*?\]/g,"").replace(/feat\..*| & .*/,"").replace(/[^a-z0-9ß ]/g," ").replace(/\s+/g," ").trim();
+function jsonp(url){return new Promise((res,rej)=>{
+  const cb="itcb"+Math.random().toString(36).slice(2), sc=document.createElement("script");
+  const done=()=>{clearTimeout(t);delete window[cb];sc.remove()};
+  const t=setTimeout(()=>{done();rej(new Error("timeout"))},9000);
+  window[cb]=d=>{done();res(d)}; sc.onerror=()=>{done();rej(new Error("net"))};
+  sc.src=url+"&callback="+cb; document.head.appendChild(sc);
+})}
+async function findPreview(s){
+  const k=keyOf(s); if(k in pcache) return pcache[k];
+  const na=norm(s.a), nt=norm(s.t); let url=null;
+  try{
+    const d=await jsonp("https://itunes.apple.com/search?term="+encodeURIComponent(na+" "+nt)+"&media=music&entity=song&limit=15&country=DE");
+    let best=null,bs=-1;
+    for(const r of (d.results||[])){
+      if(!r.previewUrl)continue;
+      const ra=norm(r.artistName||""), rt=norm(r.trackName||"");
+      let sc=0;
+      if(ra&&(ra.includes(na)||na.includes(ra)))sc+=2;
+      if(rt===nt)sc+=3; else if(rt&&(rt.includes(nt)||nt.includes(rt)))sc+=2;
+      if(/live|karaoke|instrumental|remix|cover/i.test((r.trackName||"")+" "+(r.collectionName||"")))sc-=1;
+      if(sc>bs){bs=sc;best=r}
+    }
+    if(best&&bs>=3)url=best.previewUrl;
+  }catch(e){url=undefined}
+  if(url!==undefined)pcache[k]=url;   // Netzfehler nicht cachen
+  return url;
+}
+const fmt=x=>{x=Math.max(0,Math.floor(x||0));return Math.floor(x/60)+":"+String(x%60).padStart(2,"0")};
+function updatePlayerUI(){
+  const play=$("play"); if(!play||!S||!S.current)return;
+  const k=keyOf(S.current), u=pcache[k], ready=!!u&&loadedKey===k&&!!audio.src;
+  play.disabled=!ready; $("restart").disabled=!ready;
+  play.textContent=audio.paused?"▶ Abspielen":"⏸ Pause";
+  $("disc").classList.toggle("spin",!audio.paused);
+  let msg;
+  if(!(k in pcache)) msg=pcache.__neterr===k?"Keine Verbindung zu iTunes. Internet prüfen oder YouTube Music nutzen.":"Vorschau wird geladen …";
+  else if(!u) msg="Keine Vorschau gefunden. Anderer Song oder YouTube Music.";
+  else if(!audio.paused) msg="Läuft · "+fmt(audio.currentTime)+" / "+fmt(audio.duration||30);
+  else if(audio.currentTime>0&&!audio.ended) msg="Pausiert · "+fmt(audio.currentTime);
+  else msg="Bereit · ca. 30 Sekunden";
+  $("pstatus").textContent=msg;
+}
+["play","pause","timeupdate","ended","loadeddata"].forEach(e=>audio.addEventListener(e,updatePlayerUI));
+function setupPlayer(){
+  if(!$("play"))return;
+  const s=S.current,k=keyOf(s);
+  if(loadedKey!==k){
+    audio.pause(); audio.removeAttribute("src"); audio.load(); loadedKey=k;
+    findPreview(s).then(u=>{
+      if(u===undefined)pcache.__neterr=k;
+      if(loadedKey===k&&u){audio.src=u;audio.load()}
+      updatePlayerUI();
+      const nx=S.deck[S.deck.length-1]; if(nx)findPreview(nx);   // nächsten Song vorladen
+    });
+  }
+  $("play").onclick=()=>{if(audio.paused){if(audio.ended)audio.currentTime=0;audio.play().catch(()=>{$("pstatus").textContent="Abspielen nicht möglich. YouTube Music nutzen."})}else audio.pause()};
+  $("restart").onclick=()=>{audio.currentTime=0;audio.play().catch(()=>{})};
+  updatePlayerUI();
+}
+
+/* ---------- Spiel ---------- */
+function teamVars(i){return i===0?"--accent:var(--a);--accent-soft:var(--a-soft)":"--accent:var(--b);--accent-soft:var(--b-soft)"}
+function cardHTML(c,extra=""){return `<div class="card ${extra}"><span class="yr">${c.y}</span><div style="min-width:0"><div class="t">${esc(c.t)}</div><div class="a">${esc(c.a)}</div></div></div>`}
+const sortedOf=t=>[...t.cards].sort((x,y)=>x.y-y.y);
+
+function timelineHTML(ti){
+  const sorted=sortedOf(S.teams[ti]), sel=S.slots[ti];
+  if(S.phase==="guess"){
+    let h="";
+    for(let i=0;i<=sorted.length;i++){
+      const lbl=i===0?"vor "+sorted[0].y:i===sorted.length?"nach "+sorted[i-1].y:`${sorted[i-1].y}–${sorted[i].y}`;
+      h+=`<button class="slot ${sel===i?"sel":""}" data-team="${ti}" data-slot="${i}" aria-pressed="${sel===i}">${sel===i?"✓ hier":"+ "+lbl}</button>`;
+      if(i<sorted.length)h+=cardHTML(sorted[i]);
+    }
+    return h;
+  }
+  // Auflösung: richtige Karte ist bereits im Zeitstrahl; falsche an gewählter Stelle rot zeigen
+  let list;
+  if(S.ok[ti]) list=sorted.map(c=>c._r?{...c,_new:true}:c);
+  else {list=[...sorted];list.splice(sel,0,{...S.current,_new:true});}
+  return list.map(c=>cardHTML(c,c._new?"new "+(S.ok[ti]?"good":"wrong"):"")).join('<div class="gap"></div>');
+}
+
+function renderGame(){
+  if(S.winner!=null)return renderWin();
+  const both=S.slots[0]!=null&&S.slots[1]!=null;
+  const res=S.phase==="reveal";
+  app.innerHTML=`
+  <div class="score">${S.teams.map((t,i)=>`<div class="team ${i?"tb":"ta"} ${!res&&S.slots[i]==null?"active":""}">
+     <span class="name">${esc(t.name)}</span><span class="count">${t.cards.length}<span class="muted" style="font-size:.9rem"> / ${S.target}</span></span>
+     <span class="bar"><i style="width:${Math.min(100,t.cards.length/S.target*100)}%"></i></span></div>`).join("")}</div>
+
+  <section class="panel" style="--accent:var(--muted)">
+    <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap">
+      <span class="label">${S.tiebreak?"Stechen · ":""}Runde ${S.round}</span><span class="hint">${S.deck.length} Songs im Stapel</span>
+    </div>
+    ${!res?`
+      <div class="mystery">
+        <div class="disc" id="disc" aria-hidden="true">?</div>
+        <div class="info">
+          <div class="pbtns"><button id="play" disabled>▶ Abspielen</button><button class="ghost" id="restart" disabled aria-label="Von vorn abspielen">↺</button></div>
+          <div class="hint" id="pstatus" role="status">Vorschau wird geladen …</div>
+          <div class="pbtns"><button class="small ghost" id="skip">Anderer Song</button><a class="small ghost btn" style="padding:8px 14px;font-size:.88rem" href="${esc(ytLink(S.current))}" target="_blank" rel="noopener">YouTube Music</a></div>
+        </div>
+      </div>
+      <p class="hint" style="margin:0">${S.tiebreak?"Beide Teams haben das Ziel erreicht. Gewonnen hat, wer als einziges Team richtig liegt. ":""}Die Vorschau (ca. 30 Sekunden) spielt verdeckt. Beide Teams wählen eine Lücke in ihrem Zeitstrahl.</p>`
+    :`<div class="label">Auflösung</div>${cardHTML(S.current)}
+      <div class="row">${S.teams.map((t,i)=>`<div class="result ${S.ok[i]?"good":"wrong"}" style="flex:1 1 140px">${esc(t.name)}: ${S.ok[i]?"richtig":"falsch"}</div>`).join("")}</div>`}
+  </section>
+
+  <div class="duo">${S.teams.map((t,i)=>`<section style="${teamVars(i)}">
+      <h2 class="colhead">${esc(t.name)}</h2>
+      <div class="timeline">${timelineHTML(i)}</div></section>`).join("")}</div>
+
+  ${!res
+    ?`<button id="reveal" ${both?"":"disabled"} style="padding:16px">${both?"Auflösen":"Beide Teams wählen eine Lücke"}</button>`
+    :`<button id="next" style="padding:16px">Nächster Song</button>`}
+  <button class="ghost small" id="quit">Zum Menü</button>`;
+
+  app.querySelectorAll("[data-slot]").forEach(b=>b.onclick=()=>{const t=+b.dataset.team,v=+b.dataset.slot;S.slots[t]=S.slots[t]===v?null:v;save(KEY_GAME,S);renderGame()});
+  const q=id=>document.getElementById(id);
+  if(q("skip"))q("skip").onclick=()=>{if(!S.deck.length)return endByDeck();S.deck.unshift(S.current);S.current=S.deck.pop();S.slots=[null,null];save(KEY_GAME,S);renderGame()};
+  if(q("reveal"))q("reveal").onclick=()=>{
+    const y=S.current.y;
+    S.ok=S.teams.map((t,i)=>{const s=sortedOf(t),k=S.slots[i];
+      const l=k>0?s[k-1].y:-Infinity,r=k<s.length?s[k].y:Infinity;return l<=y&&y<=r});
+    S.teams.forEach((t,i)=>{if(S.ok[i])t.cards.push({...S.current,_r:true})});
+    S.phase="reveal";
+    // Siegprüfung
+    if(S.tiebreak){ if(S.ok[0]!==S.ok[1]) S.pendingWin=S.ok[0]?0:1; }
+    else{
+      const done=S.teams.map(t=>t.cards.length>=S.target);
+      if(done[0]&&done[1]) S.tiebreak=true; else if(done[0]||done[1]) S.pendingWin=done[0]?0:1;
+    }
+    save(KEY_GAME,S);renderGame();window.scrollTo({top:0,behavior:"smooth"});
+  };
+  if(q("next"))q("next").onclick=()=>{
+    S.teams.forEach(t=>t.cards.forEach(c=>delete c._r));
+    if(S.pendingWin!=null){S.winner=S.pendingWin;save(KEY_GAME,S);return renderWin()}
+    if(!S.deck.length)return endByDeck();
+    S.current=S.deck.pop();S.slots=[null,null];S.phase="guess";S.ok=[null,null];S.round++;
+    save(KEY_GAME,S);renderGame();window.scrollTo({top:0,behavior:"smooth"});
+  };
+  q("quit").onclick=()=>{audio.pause();renderSetup()};
+  setupPlayer();
+}
+
+function endByDeck(){
+  const [a,b]=S.teams.map(t=>t.cards.length);
+  S.winner=a===b?-1:(a>b?0:1);save(KEY_GAME,S);renderWin("Der Stapel ist leer.");
+}
+
+function renderWin(note=""){
+  const w=S.winner;
+  app.innerHTML=`
+  <section class="panel win" style="${w>=0?teamVars(w):""}">
+    <span class="label">${note||"Spielende"}</span>
+    <div class="big" style="color:var(--accent,var(--ink))">${w<0?"Unentschieden":esc(S.teams[w].name)+" gewinnt!"}</div>
+    <div style="font-family:var(--f-mono);font-size:1.3rem;font-weight:700">${S.teams[0].cards.length} : ${S.teams[1].cards.length}</div>
+  </section>
+  ${S.teams.map((t,i)=>`<section style="${teamVars(i)};display:flex;flex-direction:column;gap:8px"><h2>${esc(t.name)}</h2>
+    ${[...t.cards].sort((x,y)=>x.y-y.y).map(c=>cardHTML(c)).join("")}</section>`).join("")}
+  <button id="again" style="padding:16px">Neues Spiel</button>`;
+  document.getElementById("again").onclick=()=>{setup.n1=S.teams[0].name;setup.n2=S.teams[1].name;S=null;save(KEY_GAME,null);renderSetup()};
+}
+
+if(S&&S.winner!=null){S=null}
+renderSetup();
+</script>
+
+</body>
+</html>
