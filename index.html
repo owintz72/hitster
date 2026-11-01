@@ -112,6 +112,7 @@ button:disabled{opacity:.4;cursor:not-allowed}
 <div class="wrap" id="app"></div>
 
 <script>
+const APP_VERSION="p1.00";
 const BUILTIN = [
 ["Ein Schiff wird kommen","Lale Andersen",1960],["Da sprach der alte Häuptling der Indianer","Gus Backus",1960],
 ["Stand by Me","Ben E. King",1961],["Twist and Shout","The Beatles",1963],["I Want to Hold Your Hand","The Beatles",1963],
@@ -395,9 +396,249 @@ const SUED = [
 ["Show das Poderosas","Anitta",2013],["Amar pelos dois","Salvador Sobral",2017],["Fake Love","BTS",2018],["Jerusalema","Master KG feat. Nomcebo",2019],
 ["Gurenge","LiSA",2019],["Hatrið mun sigra","Hatari",2019],["Stefania","Kalush Orchestra",2022],["Cha Cha Cha","Käärijä",2023],["Idol","YOASOBI",2023]
 ].map(([t,a,y])=>({t,a,y}));
+const STD_ADD=[
+// 60er international
+["Surfin' U.S.A.","The Beach Boys",1963],["I Get Around","The Beach Boys",1964],["Wouldn't It Be Nice","The Beach Boys",1966],
+["California Dreamin'","The Mamas & the Papas",1965],["Monday, Monday","The Mamas & the Papas",1966],["Mr. Tambourine Man","The Byrds",1965],
+["Like a Rolling Stone","Bob Dylan",1965],["She Loves You","The Beatles",1963],["Can't Buy Me Love","The Beatles",1964],["A Hard Day's Night","The Beatles",1964],
+["Help!","The Beatles",1965],["Paperback Writer","The Beatles",1966],["Eleanor Rigby","The Beatles",1966],["Yellow Submarine","The Beatles",1966],
+["Penny Lane","The Beatles",1967],["Lady Madonna","The Beatles",1968],["Ob-La-Di, Ob-La-Da","The Beatles",1968],["Get Back","The Beatles",1969],
+["Come Together","The Beatles",1969],["Here Comes the Sun","The Beatles",1969],["Ruby Tuesday","The Rolling Stones",1967],
+["Jumpin' Jack Flash","The Rolling Stones",1968],["Sympathy for the Devil","The Rolling Stones",1968],["Honky Tonk Women","The Rolling Stones",1969],
+["You Really Got Me","The Kinks",1964],["Sunny Afternoon","The Kinks",1966],["Waterloo Sunset","The Kinks",1967],["My Generation","The Who",1965],
+["Pinball Wizard","The Who",1969],["The Sound of Silence","Simon & Garfunkel",1965],["Mrs. Robinson","Simon & Garfunkel",1968],["The Boxer","Simon & Garfunkel",1969],
+["Ain't No Mountain High Enough","Marvin Gaye & Tammi Terrell",1967],["I Heard It Through the Grapevine","Marvin Gaye",1968],
+["Baby Love","The Supremes",1964],["Stop! In the Name of Love","The Supremes",1965],["You Can't Hurry Love","The Supremes",1966],
+["Dancing in the Street","Martha and the Vandellas",1964],["Reach Out I'll Be There","Four Tops",1966],["I Got You (I Feel Good)","James Brown",1965],
+["(Sittin' On) The Dock of the Bay","Otis Redding",1968],["Son of a Preacher Man","Dusty Springfield",1968],["Downtown","Petula Clark",1964],
+["These Boots Are Made for Walkin'","Nancy Sinatra",1966],["Fly Me to the Moon","Frank Sinatra",1964],["Strangers in the Night","Frank Sinatra",1966],
+["My Way","Frank Sinatra",1969],["It's Now or Never","Elvis Presley",1960],["Can't Help Falling in Love","Elvis Presley",1961],
+["Return to Sender","Elvis Presley",1962],["In the Ghetto","Elvis Presley",1969],["Suspicious Minds","Elvis Presley",1969],
+["The Twist","Chubby Checker",1960],["Let's Twist Again","Chubby Checker",1961],["Runaround Sue","Dion",1961],["The Loco-Motion","Little Eva",1962],
+["Be My Baby","The Ronettes",1963],["Please Mr. Postman","The Marvelettes",1961],["Georgia on My Mind","Ray Charles",1960],["Hit the Road Jack","Ray Charles",1961],
+["Moon River","Henry Mancini",1961],["The Lion Sleeps Tonight","The Tokens",1961],["Only the Lonely","Roy Orbison",1960],["Crying","Roy Orbison",1961],
+["Itsy Bitsy Teenie Weenie Yellow Polka Dot Bikini","Brian Hyland",1960],["Sealed with a Kiss","Brian Hyland",1962],["Speedy Gonzales","Pat Boone",1962],
+["Blowin' in the Wind","Peter, Paul and Mary",1963],["Hello, Dolly!","Louis Armstrong",1964],["You've Lost That Lovin' Feelin'","The Righteous Brothers",1964],
+["Unchained Melody","The Righteous Brothers",1965],["Gloria","Them",1964],["Mrs. Brown, You've Got a Lovely Daughter","Herman's Hermits",1965],
+["Hang On Sloopy","The McCoys",1965],["Wild Thing","The Troggs",1966],["Black Is Black","Los Bravos",1966],["Daydream","The Lovin' Spoonful",1966],
+["Summer in the City","The Lovin' Spoonful",1966],["I'm a Believer","The Monkees",1966],["Daydream Believer","The Monkees",1967],["Happy Together","The Turtles",1967],
+["Hey Joe","The Jimi Hendrix Experience",1966],["All Along the Watchtower","The Jimi Hendrix Experience",1968],["Sunshine of Your Love","Cream",1967],
+["San Francisco (Be Sure to Wear Flowers in Your Hair)","Scott McKenzie",1967],["A Whiter Shade of Pale","Procol Harum",1967],["Massachusetts","Bee Gees",1967],
+["Nights in White Satin","The Moody Blues",1967],["White Rabbit","Jefferson Airplane",1967],["People Are Strange","The Doors",1967],["Puppet on a String","Sandie Shaw",1967],
+["It's Not Unusual","Tom Jones",1965],["Green, Green Grass of Home","Tom Jones",1966],["Delilah","Tom Jones",1968],["Born to Be Wild","Steppenwolf",1968],
+["Fire","The Crazy World of Arthur Brown",1968],["Mony Mony","Tommy James and the Shondells",1968],["Everlasting Love","Love Affair",1968],
+["Build Me Up Buttercup","The Foundations",1968],["Those Were the Days","Mary Hopkin",1968],["Israelites","Desmond Dekker & The Aces",1968],
+["Whole Lotta Love","Led Zeppelin",1969],["Space Oddity","David Bowie",1969],["Bad Moon Rising","Creedence Clearwater Revival",1969],
+["Venus","Shocking Blue",1969],["Aquarius/Let the Sunshine In","The 5th Dimension",1969],["Oh Happy Day","Edwin Hawkins Singers",1969],
+["In the Year 2525","Zager and Evans",1969],["Je t'aime… moi non plus","Jane Birkin & Serge Gainsbourg",1969],
+// 60er deutsch
+["Wir wollen niemals auseinandergeh'n","Heidi Brühl",1960],["Ich will keine Schokolade","Trude Herr",1960],["Die Liebe ist ein seltsames Spiel","Connie Francis",1960],
+["Seemann (deine Heimat ist das Meer)","Lolita",1960],["Zuckerpuppe (aus der Bauchtanzgruppe)","Bill Ramsey",1961],["Babysitter-Boogie","Ralf Bendix",1961],
+["Weiße Rosen aus Athen","Nana Mouskouri",1961],["Tanze mit mir in den Morgen","Gerhard Wendland",1961],["La Paloma","Freddy Quinn",1961],
+["Schöner fremder Mann","Connie Francis",1961],["Zwei kleine Italiener","Conny Froboess",1962],["Sag mir, wo die Blumen sind","Marlene Dietrich",1962],
+["Heißer Sand","Mina",1962],["Ich will 'nen Cowboy als Mann","Gitte",1963],["Rote Lippen soll man küssen","Cliff Richard",1963],
+["Es gibt kein Bier auf Hawaii","Paul Kuhn",1963],["Sie liebt dich","The Beatles",1964],["Komm, gib mir deine Hand","The Beatles",1964],
+["Wenn ich ein Junge wär","Rita Pavone",1964],["Warum nur, warum?","Udo Jürgens",1964],["Humba Täterä","Ernst Neger",1964],
+["Mit 17 hat man noch Träume","Peggy March",1965],["Siebzehn Jahr, blondes Haar","Udo Jürgens",1965],["Aber dich gibt's nur einmal für mich","Die Nilsen Brothers",1965],
+["Merci, Chérie","Udo Jürgens",1966],["Beiß nicht gleich in jeden Apfel","Wencke Myhre",1966],["Monja","Roland W.",1968],["Du sollst nicht weinen","Heintje",1968],
+["Heidschi Bumbeidschi","Heintje",1968],["Zwei Apfelsinen im Haar","Adam & Eve",1968],["Wärst du doch in Düsseldorf geblieben","Dorthe",1968],
+["Mein Freund der Baum","Alexandra",1968],
+// 70er international
+["Paranoid","Black Sabbath",1970],["Black Magic Woman","Santana",1970],["Your Song","Elton John",1970],["Layla","Derek and the Dominos",1970],
+["In the Summertime","Mungo Jerry",1970],["Band of Gold","Freda Payne",1970],["ABC","The Jackson 5",1970],["War","Edwin Starr",1970],
+["Get It On","T. Rex",1971],["Brown Sugar","The Rolling Stones",1971],["Stairway to Heaven","Led Zeppelin",1971],["American Pie","Don McLean",1971],
+["Maggie May","Rod Stewart",1971],["What's Going On","Marvin Gaye",1971],["Take Me Home, Country Roads","John Denver",1971],["A Horse with No Name","America",1971],
+["Lady in Black","Uriah Heep",1971],["Mamy Blue","Pop-Tops",1971],["Chirpy Chirpy Cheep Cheep","Middle of the Road",1971],["Tweedle Dee, Tweedle Dum","Middle of the Road",1971],
+["Sacramento","Middle of the Road",1972],["Smoke on the Water","Deep Purple",1972],["School's Out","Alice Cooper",1972],["Lean on Me","Bill Withers",1972],
+["Heart of Gold","Neil Young",1972],["Popcorn","Hot Butter",1972],["Mouldy Old Dough","Lieutenant Pigeon",1972],["Crocodile Rock","Elton John",1972],
+["Rocket Man","Elton John",1972],["Starman","David Bowie",1972],["Beautiful Sunday","Daniel Boone",1972],["Mexico","Les Humphries Singers",1972],
+["Mama Loo","Les Humphries Singers",1973],["Block Buster!","The Sweet",1973],["The Ballroom Blitz","The Sweet",1973],["Money","Pink Floyd",1973],
+["Angie","The Rolling Stones",1973],["Let's Get It On","Marvin Gaye",1973],["Killing Me Softly with His Song","Roberta Flack",1973],
+["Tie a Yellow Ribbon Round the Ole Oak Tree","Tony Orlando and Dawn",1973],["Can the Can","Suzi Quatro",1973],["Live and Let Die","Paul McCartney & Wings",1973],
+["Jolene","Dolly Parton",1973],["Devil Gate Drive","Suzi Quatro",1974],["Seasons in the Sun","Terry Jacks",1974],["Kung Fu Fighting","Carl Douglas",1974],
+["Sugar Baby Love","The Rubettes",1974],["Rock the Boat","The Hues Corporation",1974],["Lady Marmalade","Labelle",1974],["Rock Your Baby","George McCrae",1974],
+["Killer Queen","Queen",1974],["Tiger Feet","Mud",1974],["Shang-a-Lang","Bay City Rollers",1974],["Dreamer","Supertramp",1974],
+["Fox on the Run","The Sweet",1975],["SOS","ABBA",1975],["Lady Bump","Penny McLean",1975],["Fly, Robin, Fly","Silver Convention",1975],
+["Love to Love You Baby","Donna Summer",1975],["Mississippi","Pussycat",1975],["Una Paloma Blanca","George Baker Selection",1975],["Lovin' You","Minnie Riperton",1975],
+["Bye Bye Baby","Bay City Rollers",1975],["Wish You Were Here","Pink Floyd",1975],["Rhinestone Cowboy","Glen Campbell",1975],
+["Fernando","ABBA",1976],["Money, Money, Money","ABBA",1976],["Sunny","Boney M.",1976],["Hotel California","Eagles",1976],["Year of the Cat","Al Stewart",1976],
+["Don't Go Breaking My Heart","Elton John & Kiki Dee",1976],["Living Next Door to Alice","Smokie",1976],["Anarchy in the U.K.","Sex Pistols",1976],
+["Blitzkrieg Bop","Ramones",1976],["More Than a Feeling","Boston",1976],["Car Wash","Rose Royce",1976],["Disco Inferno","The Trammps",1976],
+["I Feel Love","Donna Summer",1977],["Ma Baker","Boney M.",1977],["How Deep Is Your Love","Bee Gees",1977],["Mull of Kintyre","Wings",1977],
+["We Will Rock You","Queen",1977],["We Are the Champions","Queen",1977],["Dreams","Fleetwood Mac",1977],["Rockin' All Over the World","Status Quo",1977],
+["Dust in the Wind","Kansas",1977],["Night Fever","Bee Gees",1978],["Take a Chance on Me","ABBA",1978],["Hold the Line","Toto",1978],["Rasputin","Boney M.",1978],
+["You're the One That I Want","John Travolta & Olivia Newton-John",1978],["Grease","Frankie Valli",1978],["Wuthering Heights","Kate Bush",1978],
+["Baker Street","Gerry Rafferty",1978],["Roxanne","The Police",1978],["Hot Stuff","Donna Summer",1979],["Born to Be Alive","Patrick Hernandez",1979],
+["Ring My Bell","Anita Ward",1979],["Video Killed the Radio Star","The Buggles",1979],["Message in a Bottle","The Police",1979],["London Calling","The Clash",1979],
+["Knock on Wood","Amii Stewart",1979],["Gimme! Gimme! Gimme! (A Man After Midnight)","ABBA",1979],["Chiquitita","ABBA",1979],
+["Boogie Wonderland","Earth, Wind & Fire",1979],["Bright Eyes","Art Garfunkel",1979],["The Logical Song","Supertramp",1979],
+// 70er deutsch
+["Knallrotes Gummiboot","Wencke Myhre",1970],["Du","Peter Maffay",1970],["Schön ist es auf der Welt zu sein","Roy Black & Anita",1971],["Da Hofa","Wolfgang Ambros",1971],
+["Es fährt ein Zug nach Nirgendwo","Christian Anders",1972],["Michaela","Bata Illic",1972],["Blau blüht der Enzian","Heino",1972],
+["Ich hab' die Liebe geseh'n","Vicky Leandros",1972],["Am Tag, als Conny Kramer starb","Juliane Werding",1972],["Der Junge mit der Mundharmonika","Bernd Clüver",1973],
+["Wenn ein Mensch lebt","Puhdys",1973],["Alles klar auf der Andrea Doria","Udo Lindenberg",1973],["Mädchen aus Ost-Berlin","Udo Lindenberg",1973],
+["Du kannst nicht immer siebzehn sein","Chris Roberts",1974],["Wann wird's mal wieder richtig Sommer?","Rudi Carrell",1975],["Ein ehrenwertes Haus","Udo Jürgens",1975],
+["Ein Lied kann eine Brücke sein","Joy Fleming",1975],["Anita","Costa Cordalis",1976],["Rocky","Frank Farian",1976],["Biene Maja","Karel Gott",1976],
+["Schmidtchen Schleicher","Nico Haak",1976],["Und es war Sommer","Peter Maffay",1976],["Schifoan","Wolfgang Ambros",1976],["Am Fenster","City",1977],
+["Tanze Samba mit mir","Tony Holiday",1977],["Ich möcht' so gern Dave Dudley hör'n","Truck Stop",1978],["Das Lied der Schlümpfe","Vader Abraham",1978],
+["So bist du","Peter Maffay",1979],
+// 80er international
+["Another One Bites the Dust","Queen",1980],["The Winner Takes It All","ABBA",1980],["Super Trouper","ABBA",1980],["Call Me","Blondie",1980],
+["Funkytown","Lipps Inc.",1980],["Upside Down","Diana Ross",1980],["Back in Black","AC/DC",1980],["Fame","Irene Cara",1980],["Woman in Love","Barbra Streisand",1980],
+["Fade to Grey","Visage",1980],["Enola Gay","Orchestral Manoeuvres in the Dark",1980],["Don't You Want Me","The Human League",1981],
+["Bette Davis Eyes","Kim Carnes",1981],["Physical","Olivia Newton-John",1981],["Stand and Deliver","Adam and the Ants",1981],["Ghost Town","The Specials",1981],
+["Vienna","Ultravox",1981],["Don't Stop Believin'","Journey",1981],["In the Air Tonight","Phil Collins",1981],["Start Me Up","The Rolling Stones",1981],
+["Japanese Boy","Aneka",1981],["Just Can't Get Enough","Depeche Mode",1981],["Ebony and Ivory","Paul McCartney & Stevie Wonder",1982],
+["Come On Eileen","Dexys Midnight Runners",1982],["Hungry Like the Wolf","Duran Duran",1982],["Do You Really Want to Hurt Me","Culture Club",1982],
+["Gloria","Laura Branigan",1982],["Words","F. R. David",1982],["Beat It","Michael Jackson",1983],["Karma Chameleon","Culture Club",1983],
+["Maniac","Michael Sembello",1983],["Flashdance... What a Feeling","Irene Cara",1983],["Let's Dance","David Bowie",1983],["Owner of a Lonely Heart","Yes",1983],
+["Moonlight Shadow","Mike Oldfield",1983],["All Night Long (All Night)","Lionel Richie",1983],["Jump","Van Halen",1984],["Time After Time","Cyndi Lauper",1984],
+["When Doves Cry","Prince",1984],["Ghostbusters","Ray Parker Jr.",1984],["Careless Whisper","George Michael",1984],["Do They Know It's Christmas?","Band Aid",1984],
+["I Just Called to Say I Love You","Stevie Wonder",1984],["Smalltown Boy","Bronski Beat",1984],["Two Tribes","Frankie Goes to Hollywood",1984],
+["Dancing in the Dark","Bruce Springsteen",1984],["Born in the U.S.A.","Bruce Springsteen",1984],["Big in Japan","Alphaville",1984],["Forever Young","Alphaville",1984],
+["The Power of Love","Jennifer Rush",1984],["Shout","Tears for Fears",1984],["You Spin Me Round (Like a Record)","Dead or Alive",1984],["Self Control","Laura Branigan",1984],
+["People Are People","Depeche Mode",1984],["Hello","Lionel Richie",1984],["We Are the World","USA for Africa",1985],["Money for Nothing","Dire Straits",1985],
+["Everybody Wants to Rule the World","Tears for Fears",1985],["Running Up That Hill","Kate Bush",1985],["Into the Groove","Madonna",1985],
+["Cheri Cheri Lady","Modern Talking",1985],["West End Girls","Pet Shop Boys",1985],["Tarzan Boy","Baltimora",1985],["The Final Countdown","Europe",1986],
+["Walk Like an Egyptian","The Bangles",1986],["Papa Don't Preach","Madonna",1986],["Take My Breath Away","Berlin",1986],["Danger Zone","Kenny Loggins",1986],
+["The Lady in Red","Chris de Burgh",1986],["Addicted to Love","Robert Palmer",1986],["Sledgehammer","Peter Gabriel",1986],["Kiss","Prince",1986],
+["Venus","Bananarama",1986],["Don't Dream It's Over","Crowded House",1986],["La Isla Bonita","Madonna",1987],["With or Without You","U2",1987],
+["I Still Haven't Found What I'm Looking For","U2",1987],["Here I Go Again","Whitesnake",1987],["Pump Up the Volume","M/A/R/R/S",1987],
+["I Wanna Dance with Somebody (Who Loves Me)","Whitney Houston",1987],["Bad","Michael Jackson",1987],["Heaven Is a Place on Earth","Belinda Carlisle",1987],
+["It's a Sin","Pet Shop Boys",1987],["Need You Tonight","INXS",1987],["Push It","Salt-N-Pepa",1987],["Wonderful Life","Black",1987],["Everywhere","Fleetwood Mac",1987],
+["Smooth Criminal","Michael Jackson",1988],["Listen to Your Heart","Roxette",1988],["Fast Car","Tracy Chapman",1988],["Buffalo Stance","Neneh Cherry",1988],
+["I'm Gonna Be (500 Miles)","The Proclaimers",1988],["The Look","Roxette",1989],["Eternal Flame","The Bangles",1989],["Lambada","Kaoma",1989],
+["Ride on Time","Black Box",1989],["Back to Life","Soul II Soul",1989],["Personal Jesus","Depeche Mode",1989],["Another Day in Paradise","Phil Collins",1989],
+// 80er deutsch
+["Ein Jahr (Es geht voran)","Fehlfarben",1980],["Blaue Augen","Ideal",1980],["Berlin","Ideal",1980],["Über sieben Brücken musst du gehn","Peter Maffay",1980],
+["Eisbär","Grauzone",1981],["Goldener Reiter","Joachim Witt",1981],["Johnny Blue","Lena Valaitis",1981],["Ruf Teddybär eins-vier","Jonny Hill",1981],
+["Der Kommissar","Falco",1982],["Nur geträumt","Nena",1982],["Carbonara","Spliff",1982],["Es lebe der Sport","Rainhard Fendrich",1982],["Leuchtturm","Nena",1983],
+["Fürstenfeld","STS",1984],["Flugzeuge im Bauch","Herbert Grönemeyer",1984],["Jeanny","Falco",1985],["Vienna Calling","Falco",1985],["Für alle","Wind",1985],
+["Dein ist mein ganzes Herz","Heinz Rudolf Kunze",1985],["Ba-Ba-Banküberfall","Erste Allgemeine Verunsicherung",1985],["Kinder an die Macht","Herbert Grönemeyer",1986],
+["Der König von Deutschland","Rio Reiser",1986],["Fata Morgana","Erste Allgemeine Verunsicherung",1986],["Hinterm Horizont","Udo Lindenberg",1987],
+["Lass die Sonne in dein Herz","Wind",1987],["Freiheit","Marius Müller-Westernhagen",1987],["Macho Macho","Rainhard Fendrich",1988],["Bitte bitte","Die Ärzte",1988],
+["Hier kommt Alex","Die Toten Hosen",1988],["Was soll das?","Herbert Grönemeyer",1988],["Sexy","Marius Müller-Westernhagen",1989],["I Am from Austria","Rainhard Fendrich",1989],
+// 90er international
+["Vogue","Madonna",1990],["Ice Ice Baby","Vanilla Ice",1990],["U Can't Touch This","MC Hammer",1990],["Nothing Compares 2 U","Sinéad O'Connor",1990],
+["Enjoy the Silence","Depeche Mode",1990],["Wind of Change","Scorpions",1990],["Unbelievable","EMF",1990],["The Power","Snap!",1990],
+["Gonna Make You Sweat (Everybody Dance Now)","C+C Music Factory",1990],["Groove Is in the Heart","Deee-Lite",1990],["Black or White","Michael Jackson",1991],
+["(Everything I Do) I Do It for You","Bryan Adams",1991],["Joyride","Roxette",1991],["Enter Sandman","Metallica",1991],["Nothing Else Matters","Metallica",1992],
+["Under the Bridge","Red Hot Chili Peppers",1992],["I Will Always Love You","Whitney Houston",1992],["November Rain","Guns N' Roses",1992],["Jump","Kris Kross",1992],
+["Please Don't Go","KWS",1992],["It's My Life","Dr. Alban",1992],["All That She Wants","Ace of Base",1992],["Creep","Radiohead",1992],["Informer","Snow",1992],
+["No Limit","2 Unlimited",1993],["The Sign","Ace of Base",1993],["What's Up?","4 Non Blondes",1993],["Mmm Mmm Mmm Mmm","Crash Test Dummies",1993],
+["The Rhythm of the Night","Corona",1993],["Loser","Beck",1993],["Everybody Hurts","R.E.M.",1993],["Hero","Mariah Carey",1993],["Saturday Night","Whigfield",1994],
+["Cotton Eye Joe","Rednex",1994],["Love Is All Around","Wet Wet Wet",1994],["Streets of Philadelphia","Bruce Springsteen",1994],
+["Scatman (Ski-Ba-Bop-Ba-Dop-Bop)","Scatman John",1994],["Another Night","Real McCoy",1994],["Basket Case","Green Day",1994],["Self Esteem","The Offspring",1994],
+["All I Want for Christmas Is You","Mariah Carey",1994],["Waterfalls","TLC",1995],["Back for Good","Take That",1995],["Boombastic","Shaggy",1995],
+["One of Us","Joan Osborne",1995],["Children","Robert Miles",1995],["Insomnia","Faithless",1995],["Be My Lover","La Bouche",1995],["Common People","Pulp",1995],
+["Lemon Tree","Fool's Garden",1995],["Killing Me Softly","Fugees",1996],["Don't Speak","No Doubt",1996],["Ironic","Alanis Morissette",1996],
+["Spaceman","Babylon Zoo",1996],["Firestarter","The Prodigy",1996],["Return of the Mack","Mark Morrison",1996],["Say You'll Be There","Spice Girls",1996],
+["Don't Look Back in Anger","Oasis",1996],["Coco Jamboo","Mr. President",1996],["Bailando","Paradisio",1996],["Everybody (Backstreet's Back)","Backstreet Boys",1997],
+["Tearin' Up My Heart","NSYNC",1997],["MMMBop","Hanson",1997],["Men in Black","Will Smith",1997],["Candle in the Wind 1997","Elton John",1997],
+["Tubthumping","Chumbawamba",1997],["Song 2","Blur",1997],["Bitch","Meredith Brooks",1997],["Around the World","Daft Punk",1997],
+["Truly Madly Deeply","Savage Garden",1997],["Angels","Robbie Williams",1997],["Gettin' Jiggy wit It","Will Smith",1998],["Believe","Cher",1998],
+["Ray of Light","Madonna",1998],["Frozen","Madonna",1998],["Kiss Me","Sixpence None the Richer",1998],["Iris","Goo Goo Dolls",1998],
+["Ghetto Supastar (That Is What You Are)","Pras Michel",1998],["Blue (Da Ba Dee)","Eiffel 65",1998],["Pretty Fly (for a White Guy)","The Offspring",1998],
+["I Want It That Way","Backstreet Boys",1999],["Livin' la Vida Loca","Ricky Martin",1999],["Genie in a Bottle","Christina Aguilera",1999],
+["Smooth","Santana feat. Rob Thomas",1999],["Better Off Alone","Alice Deejay",1999],["Freestyler","Bomfunk MC's",1999],
+// 90er deutsch
+["Ich hab' geträumt von dir","Matthias Reim",1990],["Millionär","Die Prinzen",1991],["Gabi und Klaus","Die Prinzen",1991],["Kein Schwein ruft mich an","Max Raabe",1992],
+["Tag am Meer","Die Fantastischen Vier",1993],["Alles aus Liebe","Die Toten Hosen",1993],["Kling Klang","Keimzeit",1993],["Willenlos","Marius Müller-Westernhagen",1994],
+["Mädchen","Lucilectric",1994],["Herz an Herz","Blümchen",1995],["Sie ist weg","Die Fantastischen Vier",1995],["Nordisch by Nature","Fettes Brot",1995],
+["Abenteuerland","Pur",1995],["Boomerang","Blümchen",1996],["Ich find' dich scheiße","Tic Tac Toe",1996],["Jein","Fettes Brot",1996],["Engel","Rammstein",1997],
+["Du hast","Rammstein",1997],["Warum?","Tic Tac Toe",1997],["Du liebst mich nicht","Sabrina Setlur",1997],["A-N-N-A","Freundeskreis",1997],
+["Guildo hat euch lieb!","Guildo Horn",1998],["Ein Schwein namens Männer","Die Ärzte",1998],["Die Flut","Joachim Witt & Peter Heppner",1998],
+["Bleibt alles anders","Herbert Grönemeyer",1998],["Weinst du","Echt",1998],["Liebeslied","Absolute Beginner",1998],["Maschendrahtzaun","Stefan Raab",1999],
+["Du trägst keine Liebe in dir","Echt",1999],["Sie sieht mich nicht","Xavier Naidoo",1999],
+// 2000er international
+["It's My Life","Bon Jovi",2000],["Bye Bye Bye","NSYNC",2000],["Music","Madonna",2000],["Who Let the Dogs Out","Baha Men",2000],["Stan","Eminem feat. Dido",2000],
+["The Real Slim Shady","Eminem",2000],["Yellow","Coldplay",2000],["Can't Get You Out of My Head","Kylie Minogue",2001],
+["Lady Marmalade","Christina Aguilera, Lil' Kim, Mýa & P!nk",2001],["Get the Party Started","P!nk",2001],["Clint Eastwood","Gorillaz",2001],["Hero","Enrique Iglesias",2001],
+["Whenever, Wherever","Shakira",2001],["How You Remind Me","Nickelback",2001],["Fallin'","Alicia Keys",2001],["Underneath Your Clothes","Shakira",2002],
+["Complicated","Avril Lavigne",2002],["Sk8er Boi","Avril Lavigne",2002],["Without Me","Eminem",2002],["Hot in Herre","Nelly",2002],["Dilemma","Nelly feat. Kelly Rowland",2002],
+["Cry Me a River","Justin Timberlake",2002],["A Thousand Miles","Vanessa Carlton",2002],["Clocks","Coldplay",2002],["Beautiful","Christina Aguilera",2002],
+["Satisfaction","Benny Benassi",2002],["In da Club","50 Cent",2003],["Where Is the Love?","The Black Eyed Peas",2003],["Mr. Brightside","The Killers",2003],
+["Numb","Linkin Park",2003],["Toxic","Britney Spears",2004],["Yeah!","Usher feat. Lil Jon & Ludacris",2004],["Take Me Out","Franz Ferdinand",2004],
+["Boulevard of Broken Dreams","Green Day",2004],["American Idiot","Green Day",2004],["Since U Been Gone","Kelly Clarkson",2004],["Somewhere Only We Know","Keane",2004],
+["Vertigo","U2",2004],["Call on Me","Eric Prydz",2004],["Lonely","Akon",2004],["Hung Up","Madonna",2005],["You're Beautiful","James Blunt",2005],
+["Bad Day","Daniel Powter",2005],["Gold Digger","Kanye West feat. Jamie Foxx",2005],["Don't Cha","The Pussycat Dolls",2005],["Axel F","Crazy Frog",2005],
+["Feel Good Inc.","Gorillaz",2005],["Pon de Replay","Rihanna",2005],["Fix You","Coldplay",2005],["SexyBack","Justin Timberlake",2006],["Maneater","Nelly Furtado",2006],
+["Promiscuous","Nelly Furtado feat. Timbaland",2006],["Chasing Cars","Snow Patrol",2006],["Irreplaceable","Beyoncé",2006],
+["I Don't Feel Like Dancin'","Scissor Sisters",2006],["Smile","Lily Allen",2006],["Patience","Take That",2006],["Hey There Delilah","Plain White T's",2006],
+["Grace Kelly","Mika",2007],["Rule the World","Take That",2007],["Apologize","Timbaland feat. OneRepublic",2007],["Ruby","Kaiser Chiefs",2007],
+["Valerie","Mark Ronson feat. Amy Winehouse",2007],["Back to Black","Amy Winehouse",2007],["Girlfriend","Avril Lavigne",2007],["Bleeding Love","Leona Lewis",2007],
+["Paper Planes","M.I.A.",2007],["Kids","MGMT",2007],["Viva la Vida","Coldplay",2008],["I Kissed a Girl","Katy Perry",2008],["Hot n Cold","Katy Perry",2008],
+["Mercy","Duffy",2008],["Single Ladies (Put a Ring on It)","Beyoncé",2008],["Just Dance","Lady Gaga",2008],["Womanizer","Britney Spears",2008],
+["Use Somebody","Kings of Leon",2008],["Sex on Fire","Kings of Leon",2008],["Disturbia","Rihanna",2008],["Pjanoo","Eric Prydz",2008],["Infinity 2008","Guru Josh Project",2008],
+["Bad Romance","Lady Gaga",2009],["Empire State of Mind","Jay-Z feat. Alicia Keys",2009],["Halo","Beyoncé",2009],["Fireflies","Owl City",2009],["Tik Tok","Kesha",2009],
+["When Love Takes Over","David Guetta feat. Kelly Rowland",2009],
+// 2000er deutsch
+["Bayern","Die Toten Hosen",2000],["Wadde hadde dudde da?","Stefan Raab",2000],["Und wenn ein Lied","Söhne Mannheims",2000],["Sonne","Rammstein",2001],
+["Weck mich auf","Samy Deluxe",2001],["Wenn das Liebe ist","Glashaus",2001],["Dickes B","Seeed",2001],["Ein Kompliment","Sportfreunde Stiller",2002],
+["Guten Tag","Wir sind Helden",2003],["Ich lebe","Christina Stürmer",2003],["Kein Zurück","Wolfsheim",2003],["Viva Colonia","Höhner",2003],["Mein Block","Sido",2004],
+["Ohne dich","Rammstein",2004],["Symphonie","Silbermond",2004],["Durch die Nacht","Silbermond",2004],["Denkmal","Wir sind Helden",2004],
+["Wir sind wir","Paul van Dyk & Peter Heppner",2004],["Augen auf!","Oomph!",2004],["Das Spiel","Annett Louisan",2004],["Emanuela","Fettes Brot",2005],
+["Schrei","Tokio Hotel",2005],["Freunde bleiben","Revolverheld",2005],["Du erinnerst mich an Liebe","Ich + Ich",2005],["Aufstehn!","Seeed feat. Cee-Lo Green",2005],
+["Zeit, dass sich was dreht","Herbert Grönemeyer",2006],["Das Beste","Silbermond",2006],["'54, '74, '90, 2006","Sportfreunde Stiller",2006],["Rette mich","Tokio Hotel",2006],
+["Tanz der Moleküle","Mia.",2006],["Dieses Leben","Juli",2006],["Ding","Seeed",2006],["Remmidemmi (Yippie Yippie Yeah)","Deichkind",2006],
+["Vom selben Stern","Ich + Ich",2007],["Stark","Ich + Ich",2007],["Schwarz zu blau","Peter Fox",2008],["Gib mir Sonne","Rosenstolz",2008],["Allein Allein","Polarkreis 18",2008],
+["Arbeit nervt","Deichkind",2008],["Nein, Mann!","Laserkraft 3D",2009],["Pflaster","Ich + Ich",2009],["Stadt","Cassandra Steen feat. Adel Tawil",2009],
+["Gewinner","Clueso",2009],["Oh Jonny","Jan Delay",2009],
+// 2010er international
+["Alejandro","Lady Gaga",2010],["Waka Waka (This Time for Africa)","Shakira",2010],["Love the Way You Lie","Eminem feat. Rihanna",2010],
+["Just the Way You Are","Bruno Mars",2010],["Grenade","Bruno Mars",2010],["California Gurls","Katy Perry feat. Snoop Dogg",2010],["Firework","Katy Perry",2010],
+["Only Girl (In the World)","Rihanna",2010],["We No Speak Americano","Yolanda Be Cool & DCUP",2010],["Satellite","Lena",2010],["Pumped Up Kicks","Foster the People",2010],
+["Party Rock Anthem","LMFAO",2011],["Someone Like You","Adele",2011],["Set Fire to the Rain","Adele",2011],["Moves Like Jagger","Maroon 5 feat. Christina Aguilera",2011],
+["We Found Love","Rihanna feat. Calvin Harris",2011],["We Are Young","fun. feat. Janelle Monáe",2011],["Little Talks","Of Monsters and Men",2011],
+["I Follow Rivers","Lykke Li",2011],["Video Games","Lana Del Rey",2011],["Levels","Avicii",2011],["Euphoria","Loreen",2012],["Call Me Maybe","Carly Rae Jepsen",2012],
+["Some Nights","fun.",2012],["Skyfall","Adele",2012],["Locked Out of Heaven","Bruno Mars",2012],["Diamonds","Rihanna",2012],["Thrift Shop","Macklemore & Ryan Lewis",2012],
+["Ho Hey","The Lumineers",2012],["Radioactive","Imagine Dragons",2012],["Let Her Go","Passenger",2012],["Summertime Sadness","Lana Del Rey",2012],
+["Blurred Lines","Robin Thicke",2013],["Wrecking Ball","Miley Cyrus",2013],["Roar","Katy Perry",2013],["Counting Stars","OneRepublic",2013],["Animals","Martin Garrix",2013],
+["Let It Go","Idina Menzel",2013],["Hey Brother","Avicii",2013],["Riptide","Vance Joy",2013],["Rather Be","Clean Bandit feat. Jess Glynne",2014],
+["All About That Bass","Meghan Trainor",2014],["Prayer in C","Lilly Wood & the Prick and Robin Schulz",2014],["Stay with Me","Sam Smith",2014],["Chandelier","Sia",2014],
+["Blank Space","Taylor Swift",2014],["Bang Bang","Jessie J, Ariana Grande & Nicki Minaj",2014],["Cheerleader","OMI",2014],
+["Sun Goes Down","Robin Schulz feat. Jasmine Thompson",2014],["Budapest","George Ezra",2014],["See You Again","Wiz Khalifa feat. Charlie Puth",2015],["Sugar","Maroon 5",2015],
+["Hotline Bling","Drake",2015],["Sorry","Justin Bieber",2015],["Love Yourself","Justin Bieber",2015],["What Do You Mean?","Justin Bieber",2015],["Heroes","Måns Zelmerlöw",2015],
+["Stressed Out","Twenty One Pilots",2015],["Lush Life","Zara Larsson",2015],["Faded","Alan Walker",2015],["7 Years","Lukas Graham",2015],
+["Ain't Nobody (Loves Me Better)","Felix Jaehn feat. Jasmine Thompson",2015],["Work","Rihanna feat. Drake",2016],["One Dance","Drake feat. Wizkid & Kyla",2016],
+["Cheap Thrills","Sia",2016],["Closer","The Chainsmokers feat. Halsey",2016],["Starboy","The Weeknd feat. Daft Punk",2016],
+["Rockabye","Clean Bandit feat. Sean Paul & Anne-Marie",2016],["Something Just Like This","The Chainsmokers & Coldplay",2017],["Believer","Imagine Dragons",2017],
+["Perfect","Ed Sheeran",2017],["Havana","Camila Cabello feat. Young Thug",2017],["Feel It Still","Portugal. The Man",2017],["New Rules","Dua Lipa",2017],
+["Thunder","Imagine Dragons",2017],["Toy","Netta",2018],["God's Plan","Drake",2018],["Shallow","Lady Gaga & Bradley Cooper",2018],["This Is America","Childish Gambino",2018],
+["Thank U, Next","Ariana Grande",2018],["One Kiss","Calvin Harris & Dua Lipa",2018],["Someone You Loved","Lewis Capaldi",2018],["Sweet but Psycho","Ava Max",2018],
+["Happier","Marshmello & Bastille",2018],["Shotgun","George Ezra",2018],["Old Town Road","Lil Nas X",2019],["Señorita","Shawn Mendes & Camila Cabello",2019],
+["Arcade","Duncan Laurence",2019],["Don't Start Now","Dua Lipa",2019],["Memories","Maroon 5",2019],["Ride It","Regard",2019],["Breaking Me","Topic feat. A7S",2019],
+// 2010er deutsch
+["Geboren um zu leben","Unheilig",2010],["Nur noch kurz die Welt retten","Tim Bendzko",2011],["Nur in meinem Kopf","Andreas Bourani",2011],
+["Cello","Udo Lindenberg feat. Clueso",2011],["Easy","Cro",2012],["Einmal um die Welt","Cro",2012],["Leider geil","Deichkind",2012],
+["Lila Wolken","Marteria, Yasha & Miss Platnum",2012],["Ich lass für dich das Licht an","Revolverheld",2013],["Lieder","Adel Tawil",2013],["Mein Herz","Beatrice Egli",2013],
+["Au revoir","Mark Forster feat. Sido",2014],["Traum","Cro",2014],["Hulapalu","Andreas Gabalier",2015],["Wie schön du bist","Sarah Connor",2015],
+["Leichtes Gepäck","Silbermond",2015],["Stimme","EFF",2015],["Wenn sie tanzt","Max Giesinger",2016],["80 Millionen","Max Giesinger",2016],["Musik sein","Wincent Weiss",2016],
+["Wir sind groß","Mark Forster",2016],["Leiser","LEA",2016],["Palmen aus Plastik","Bonez MC & RAF Camora",2016],["Ist da jemand","Adel Tawil",2017],
+["Feuerwerk","Wincent Weiss",2017],["Sowieso","Mark Forster",2018],["Regenbogenfarben","Kerstin Ott & Helene Fischer",2018],["Vincent","Sarah Connor",2019],
+["Vermissen","Juju feat. Henning May",2019],["Deutschland","Rammstein",2019],
+// 2020er international
+["Watermelon Sugar","Harry Styles",2020],["Dynamite","BTS",2020],["Savage Love (Laxed – Siren Beat)","Jawsh 685 & Jason Derulo",2020],
+["Rain on Me","Lady Gaga & Ariana Grande",2020],["Mood","24kGoldn feat. Iann Dior",2020],["Positions","Ariana Grande",2020],["Head & Heart","Joel Corry & MNEK",2020],
+["Save Your Tears","The Weeknd",2020],["Montero (Call Me by Your Name)","Lil Nas X",2021],["Good 4 U","Olivia Rodrigo",2021],
+["Peaches","Justin Bieber feat. Daniel Caesar & Giveon",2021],["Kiss Me More","Doja Cat feat. SZA",2021],["Easy On Me","Adele",2021],
+["Cold Heart (Pnau Remix)","Elton John & Dua Lipa",2021],["Shivers","Ed Sheeran",2021],["Industry Baby","Lil Nas X & Jack Harlow",2021],
+["Enemy","Imagine Dragons & JID",2021],["About Damn Time","Lizzo",2022],["Unholy","Sam Smith & Kim Petras",2022],["I'm Good (Blue)","David Guetta & Bebe Rexha",2022],
+["Bad Habit","Steve Lacy",2022],["Kill Bill","SZA",2022],["Vampire","Olivia Rodrigo",2023],["Paint the Town Red","Doja Cat",2023],["Dance the Night","Dua Lipa",2023],
+["What Was I Made For?","Billie Eilish",2023],["Daylight","David Kushner",2023],["Houdini","Dua Lipa",2023],["Lovin on Me","Jack Harlow",2023],
+["Lose Control","Teddy Swims",2023],["Texas Hold 'Em","Beyoncé",2024],["Too Sweet","Hozier",2024],["Birds of a Feather","Billie Eilish",2024],
+["Good Luck, Babe!","Chappell Roan",2024],["Please Please Please","Sabrina Carpenter",2024],["A Bar Song (Tipsy)","Shaboozey",2024],["Lunch","Billie Eilish",2024],
+["Messy","Lola Young",2024],["Abracadabra","Lady Gaga",2025],["Ordinary","Alex Warren",2025],["Manchild","Sabrina Carpenter",2025],["Golden","HUNTR/X",2025],
+["The Fate of Ophelia","Taylor Swift",2025],
+// 2020er deutsch
+["Bauch Beine Po","Shirin David",2021],["Zukunft Pink","Peter Fox feat. Inéz",2022],["Zeit","Rammstein",2022],["Friesenjung","Ski Aggu, Joost & Otto Waalkes",2023]
+].map(([t,a,y])=>({t,a,y}));
+const STANDARD=(()=>{const seen=new Set(),out=[];
+  for(const x of [...BUILTIN,...DE_ADD,...STD_ADD]){const k=(x.t+"|"+x.a).toLowerCase();if(!seen.has(k)){seen.add(k);out.push(x)}}
+  return out})();
 const EUROPA=[...BUILTIN.filter(s=>DE_BASE_TITLES.has(s.t)),...DE_ADD,...PLS,...PL_ADD,...FRS,...FR_ADD,...BUILTIN.filter(s=>INT_TITLES.has(s.t))];
 const PACKS={
-  standard:{name:"Standard",songs:BUILTIN,info:"internationale und deutsche Hits"},
+  standard:{name:"Standard",songs:STANDARD,info:"ca. 70 % internationale und 30 % deutschsprachige Hits"},
   europa:{name:"Frankreich · Polen · Deutschland",songs:EUROPA,info:"je ca. 30 % französisch, polnisch, deutsch, dazu 10 % internationale Hits"},
   sued:{name:"Süden & Welt",songs:SUED,info:"italienisch, spanischsprachig, Weltmusik – ohne Englisch"},
   exotisch:{name:"Exotisch",songs:EXO,info:"Japan, Korea, Asien, Indien, Afrika, Orient, Balkan, Osteuropa, Brasilien, Irland, Nordeuropa"}
@@ -409,34 +650,20 @@ const save=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 
-let custom=load(KEY_CUSTOM,[]);
+try{localStorage.removeItem(KEY_CUSTOM)}catch(e){}
 let S=load(KEY_GAME,null);
-let setup={n1:"Team 1",n2:"Team 2",target:10,useBuiltin:true,useCustom:true,pack:"standard"};
+let setup={n1:"Team 1",n2:"Team 2",target:10,pack:"standard"};
 const app=document.getElementById("app");
 
 function ytLink(s){
   if(s.u) return s.u;
   return "https://music.youtube.com/search?q="+encodeURIComponent(s.a+" "+s.t);
 }
-function parseCustom(text){
-  const out=[],bad=[];
-  text.split(/\r?\n/).forEach(line=>{
-    if(!line.trim())return;
-    const p=line.split(/\s*[;|\t]\s*/);
-    const y=parseInt(p[2],10);
-    if(p.length>=3&&p[0]&&p[1]&&y>=1900&&y<=2100){
-      const u=(p[3]||"").trim();
-      out.push({a:p[0].trim(),t:p[1].trim(),y,u:/^https:\/\/(www\.|m\.|music\.)?(youtube\.com|youtu\.be)\//.test(u)?u:""});
-    } else bad.push(line);
-  });
-  return {out,bad};
-}
-
 /* ---------- Setup ---------- */
 function renderSetup(msg=""){
   app.innerHTML=`
   <header style="display:flex;flex-direction:column;gap:6px">
-    <span class="label">Musik-Quiz · 2 Teams</span>
+    <span class="label">Musik-Quiz · 2 Teams · Version ${APP_VERSION}</span>
     <h1>Hit-Zeitstrahl</h1>
     <p class="muted" style="margin:0">Song hören, beide Teams ordnen ihn gleichzeitig im eigenen Zeitstrahl ein. Wer zuerst die Zielzahl an Karten hat, gewinnt.</p>
   </header>
@@ -458,27 +685,12 @@ function renderSetup(msg=""){
       <select id="pack">${Object.entries(PACKS).map(([k,p])=>`<option value="${k}" ${setup.pack===k?"selected":""}>${p.name} (${p.songs.length} Songs)</option>`).join("")}</select>
     </label>
     <p class="hint" style="margin:0">${(()=>{const p=PACKS[setup.pack];return p.info+" · "+Math.min(...p.songs.map(s=>s.y))+"–"+Math.max(...p.songs.map(s=>s.y))})()}</p>
-    <label class="check"><input type="checkbox" id="ub" ${setup.useBuiltin?"checked":""}> Songpaket verwenden</label>
-    <label class="check"><input type="checkbox" id="uc" ${setup.useCustom?"checked":""}> Eigene Songs (${custom.length})</label>
   </section>
-  <section class="panel">
-    <h2>Eigene Songs ergänzen</h2>
-    <p class="hint" style="margin:0">Eine Zeile pro Song: <code>Interpret; Titel; Jahr; YouTube-Link (optional)</code>. Abgespielt wird die 30-Sekunden-Vorschau von iTunes. Der Link ist optional und dient als Ausweich, falls keine Vorschau gefunden wird.</p>
-    <textarea id="ctext" placeholder="Helene Fischer; Atemlos durch die Nacht; 2013&#10;Queen; We Will Rock You; 1977; https://www.youtube.com/watch?v=..."></textarea>
-    <div class="row" style="flex-wrap:wrap">
-      <button class="small" id="cadd">Songs hinzufügen</button>
-      <button class="small ghost" id="cclear" ${custom.length?"":"disabled"}>Eigene Songs löschen</button>
-    </div>
-    ${msg?`<div class="hint" role="status">${msg}</div>`:""}
-    ${custom.length?`<details><summary class="muted">Liste anzeigen (${custom.length})</summary><div style="display:flex;flex-direction:column;gap:4px;margin-top:8px">${custom.map(s=>`<div style="font-size:.9rem"><span style="font-family:var(--f-mono)">${s.y}</span> · ${esc(s.a)} – ${esc(s.t)}</div>`).join("")}</div></details>`:""}
-  </section>
-  <button id="start" style="padding:16px">Neues Spiel starten</button>`;
-  const sync=()=>{setup.pack=document.getElementById("pack").value;setup.n1=n1.value.trim()||"Team 1";setup.n2=n2.value.trim()||"Team 2";setup.target=+target.value;setup.useBuiltin=ub.checked;setup.useCustom=uc.checked};
-  const {n1,n2,target,ub,uc}=Object.fromEntries(["n1","n2","target","ub","uc"].map(id=>[id,document.getElementById(id)]));
-  document.getElementById("cadd").onclick=()=>{sync();const {out,bad}=parseCustom(document.getElementById("ctext").value);
-    custom=custom.concat(out);save(KEY_CUSTOM,custom);
-    renderSetup(`${out.length} Song(s) hinzugefügt.`+(bad.length?` ${bad.length} Zeile(n) nicht erkannt – Format prüfen: Interpret; Titel; Jahr.`:""))};
-  document.getElementById("cclear").onclick=e=>{sync();if(e.target.dataset.c){custom=[];save(KEY_CUSTOM,custom);renderSetup("Eigene Songs gelöscht.")}else{e.target.dataset.c=1;e.target.textContent="Wirklich löschen?"}};
+  ${msg?`<div class="hint" role="status">${msg}</div>`:""}
+  <button id="start" style="padding:16px">Neues Spiel starten</button>
+  <p class="hint" style="margin:0;text-align:center">Version ${APP_VERSION}</p>`;
+  const sync=()=>{setup.pack=document.getElementById("pack").value;setup.n1=n1.value.trim()||"Team 1";setup.n2=n2.value.trim()||"Team 2";setup.target=+target.value};
+  const {n1,n2,target}=Object.fromEntries(["n1","n2","target"].map(id=>[id,document.getElementById(id)]));
   document.getElementById("start").onclick=()=>{sync();startGame()};
   document.getElementById("pack").onchange=()=>{sync();renderSetup()};
   const r=document.getElementById("resume"); if(r) r.onclick=renderGame;
@@ -486,8 +698,7 @@ function renderSetup(msg=""){
 
 function startGame(){
   let pool=[];
-  if(setup.useBuiltin)pool=pool.concat(PACKS[setup.pack].songs);
-  if(setup.useCustom)pool=pool.concat(custom);
+  pool=pool.concat(PACKS[setup.pack].songs);
   if(pool.length<setup.target*2+6){renderSetup(`Zu wenige Songs (${pool.length}). Für ${setup.target} Karten pro Team mindestens ${setup.target*2+6} Songs nötig.`);return}
   const deck=shuffle(pool.map(s=>({...s})));
   S={teams:[{name:setup.n1,cards:[deck.pop()]},{name:setup.n2,cards:[deck.pop()]}],
@@ -619,7 +830,8 @@ function renderGame(){
   ${!res
     ?`<button id="reveal" ${both?"":"disabled"} style="padding:16px">${both?"Auflösen":"Beide Teams wählen eine Lücke"}</button>`
     :`<button id="next" style="padding:16px">Nächster Song</button>`}
-  <button class="ghost small" id="quit">Zum Menü</button>`;
+  <button class="ghost small" id="quit">Zum Menü</button>
+  <p class="hint" style="margin:0;text-align:center">Version ${APP_VERSION}</p>`;
 
   app.querySelectorAll("[data-slot]").forEach(b=>b.onclick=()=>{const t=+b.dataset.team,v=+b.dataset.slot;S.slots[t]=S.slots[t]===v?null:v;save(KEY_GAME,S);renderGame()});
   const q=id=>document.getElementById(id);
