@@ -118,7 +118,7 @@ button:disabled{opacity:.4;cursor:not-allowed}
 <div class="wrap" id="app"></div>
 
 <script>
-const APP_VERSION="p1.01";
+const APP_VERSION="p1.02";
 const BUILTIN = [
 ["Ein Schiff wird kommen","Lale Andersen",1960],["Da sprach der alte Häuptling der Indianer","Gus Backus",1960],
 ["Stand by Me","Ben E. King",1961],["Twist and Shout","The Beatles",1963],["I Want to Hold Your Hand","The Beatles",1963],
@@ -649,14 +649,18 @@ const PACKS={
   sued:{name:"Süden & Welt",songs:SUED,info:"italienisch, spanischsprachig, Weltmusik – ohne Englisch"},
   exotisch:{name:"Exotisch",songs:EXO,info:"Japan, Korea, Asien, Indien, Afrika, Orient, Balkan, Osteuropa, Brasilien, Irland, Nordeuropa"}
 };
+PACKS.alle={name:"Alle Pakete gemischt",info:"alle Pakete zusammen, doppelte Songs nur einmal",songs:(()=>{const seen=new Set(),out=[];
+  for(const p of Object.values(PACKS))for(const x of p.songs){const k=(x.t+"|"+x.a).toLowerCase();if(!seen.has(k)){seen.add(k);out.push(x)}}
+  return out})()};
 
-const KEY_CUSTOM="hz-custom-v1", KEY_GAME="hz-game-v2";
+const KEY_CUSTOM="hz-custom-v1", KEY_GAME="hz-game-v2", KEY_NOPREV="hz-noprev-v1";
 const load=(k,d)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}};
 const save=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 
 try{localStorage.removeItem(KEY_CUSTOM)}catch(e){}
+const NOPREV=new Set(load(KEY_NOPREV,[]));
 let S=load(KEY_GAME,null);
 let setup={n1:"Team 1",n2:"Team 2",target:10,pack:"standard"};
 const app=document.getElementById("app");
@@ -704,7 +708,7 @@ function renderSetup(msg=""){
 
 function startGame(){
   let pool=[];
-  pool=pool.concat(PACKS[setup.pack].songs);
+  pool=pool.concat(PACKS[setup.pack].songs.filter(x=>!NOPREV.has(keyOf(x))));
   if(pool.length<setup.target*2+6){renderSetup(`Zu wenige Songs (${pool.length}). Für ${setup.target} Karten pro Team mindestens ${setup.target*2+6} Songs nötig.`);return}
   const deck=shuffle(pool.map(s=>({...s})));
   S={teams:[{name:setup.n1,cards:[deck.pop()]},{name:setup.n2,cards:[deck.pop()]}],
@@ -726,24 +730,30 @@ function jsonp(url){return new Promise((res,rej)=>{
   window[cb]=d=>{done();res(d)}; sc.onerror=()=>{done();rej(new Error("net"))};
   sc.src=url+"&callback="+cb; document.head.appendChild(sc);
 })}
+function bestMatch(results,na,nt){
+  let best=null,bs=-1;
+  for(const r of (results||[])){
+    if(!r.previewUrl)continue;
+    const ra=norm(r.artistName||""), rt=norm(r.trackName||"");
+    let sc=0;
+    if(ra&&(ra.includes(na)||na.includes(ra)))sc+=2;
+    else if(ra&&na.split(" ").some(w=>w.length>3&&ra.includes(w)))sc+=1;
+    if(rt===nt)sc+=3; else if(rt&&(rt.includes(nt)||nt.includes(rt)))sc+=2;
+    if(/live|karaoke|instrumental|remix|cover|tribute/i.test((r.trackName||"")+" "+(r.collectionName||"")+" "+(r.artistName||"")))sc-=1;
+    if(sc>bs){bs=sc;best=r}
+  }
+  return bs>=3?best.previewUrl:null;
+}
+const IT="https://itunes.apple.com/search?media=music&entity=song&term=";
 async function findPreview(s){
   const k=keyOf(s); if(k in pcache) return pcache[k];
   const na=norm(s.a), nt=norm(s.t); let url=null;
   try{
-    const d=await jsonp("https://itunes.apple.com/search?term="+encodeURIComponent(na+" "+nt)+"&media=music&entity=song&limit=15&country=DE");
-    let best=null,bs=-1;
-    for(const r of (d.results||[])){
-      if(!r.previewUrl)continue;
-      const ra=norm(r.artistName||""), rt=norm(r.trackName||"");
-      let sc=0;
-      if(ra&&(ra.includes(na)||na.includes(ra)))sc+=2;
-      if(rt===nt)sc+=3; else if(rt&&(rt.includes(nt)||nt.includes(rt)))sc+=2;
-      if(/live|karaoke|instrumental|remix|cover/i.test((r.trackName||"")+" "+(r.collectionName||"")))sc-=1;
-      if(sc>bs){bs=sc;best=r}
-    }
-    if(best&&bs>=3)url=best.previewUrl;
+    url=bestMatch((await jsonp(IT+encodeURIComponent(na+" "+nt)+"&limit=15&country=DE")).results,na,nt);
+    if(!url) url=bestMatch((await jsonp(IT+encodeURIComponent(nt)+"&limit=25&country=DE")).results,na,nt);
+    if(!url) url=bestMatch((await jsonp(IT+encodeURIComponent(na+" "+nt)+"&limit=15&country=US")).results,na,nt);
   }catch(e){url=undefined}
-  if(url!==undefined)pcache[k]=url;   // Netzfehler nicht cachen
+  if(url!==undefined){pcache[k]=url; if(url===null){NOPREV.add(k);save(KEY_NOPREV,[...NOPREV])}}
   return url;
 }
 const fmt=x=>{x=Math.max(0,Math.floor(x||0));return Math.floor(x/60)+":"+String(x%60).padStart(2,"0")};
@@ -755,7 +765,7 @@ function updatePlayerUI(){
   $("disc").classList.toggle("spin",!audio.paused);
   let msg;
   if(!(k in pcache)) msg=pcache.__neterr===k?"Keine Verbindung zu iTunes. Internet prüfen oder YouTube Music nutzen.":"Vorschau wird geladen …";
-  else if(!u) msg="Keine Vorschau gefunden. Anderer Song oder YouTube Music.";
+  else if(!u) msg="Keine Vorschau gefunden – nächster Song wird gesucht …";
   else if(!audio.paused) msg="Läuft · "+fmt(audio.currentTime)+" / "+fmt(audio.duration||30);
   else if(audio.currentTime>0&&!audio.ended) msg="Pausiert · "+fmt(audio.currentTime);
   else msg="Bereit · ca. 30 Sekunden";
@@ -769,6 +779,9 @@ function setupPlayer(){
     audio.pause(); audio.removeAttribute("src"); audio.load(); loadedKey=k;
     findPreview(s).then(u=>{
       if(u===undefined)pcache.__neterr=k;
+      if(u===null&&loadedKey===k&&S.phase==="guess"&&S.deck.length){   // keine Vorschau: still überspringen
+        S.current=S.deck.pop(); S.skipped=(S.skipped||0)+1; loadedKey=null; save(KEY_GAME,S); renderGame(); return;
+      }
       if(loadedKey===k&&u){audio.src=u;audio.load()}
       updatePlayerUI();
       const nx=S.deck[S.deck.length-1]; if(nx)findPreview(nx);   // nächsten Song vorladen
