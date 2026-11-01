@@ -3,6 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#c2255c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Hit-Zeitstrahl">
 <title>Hit-Zeitstrahl</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=Figtree:wght@400;600;700&family=JetBrains+Mono:wght@500;700&display=swap">
@@ -112,7 +118,7 @@ button:disabled{opacity:.4;cursor:not-allowed}
 <div class="wrap" id="app"></div>
 
 <script>
-const APP_VERSION="p1.00";
+const APP_VERSION="p1.01";
 const BUILTIN = [
 ["Ein Schiff wird kommen","Lale Andersen",1960],["Da sprach der alte Häuptling der Indianer","Gus Backus",1960],
 ["Stand by Me","Ben E. King",1961],["Twist and Shout","The Beatles",1963],["I Want to Hold Your Hand","The Beatles",1963],
@@ -882,6 +888,7 @@ function renderWin(note=""){
 
 if(S&&S.winner!=null){S=null}
 renderSetup();
+if("serviceWorker" in navigator&&location.protocol==="https:"){navigator.serviceWorker.register("sw.js").catch(()=>{})}
 </script>
 
 </body>
