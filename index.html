@@ -90,6 +90,15 @@ button:disabled{opacity:.4;cursor:not-allowed}
 .slot:hover{border-color:var(--accent);color:var(--accent)}
 .slot.sel{border-style:solid;border-color:var(--accent);background:var(--accent-soft);color:var(--accent);padding:12px}
 .gap{height:8px}
+.tabs{display:flex;gap:8px}
+.tab{flex:1 1 0;min-width:0;background:var(--surface);color:var(--ink);border:2px solid var(--line);border-radius:12px;padding:10px 12px;font-weight:700;overflow-wrap:anywhere}
+.tab.on{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+.tab .tc{font-family:var(--f-mono);font-variant-numeric:tabular-nums;opacity:.8}
+.turnbox,.viewbox{border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:8px}
+.turnbox{border:3px solid var(--accent);background:var(--accent-soft)}
+.viewbox{border:1px dashed var(--line);background:var(--surface)}
+.turnhead{font-family:var(--f-display);font-weight:800;font-size:1.05rem;color:var(--accent)}
+.viewbox .turnhead{color:var(--muted)}
 .pbtns{display:flex;gap:8px;flex-wrap:wrap}
 .pbtns>#play{flex:1 1 auto}
 
@@ -118,7 +127,7 @@ button:disabled{opacity:.4;cursor:not-allowed}
 <div class="wrap" id="app"></div>
 
 <script>
-const APP_VERSION="p1.03";
+const APP_VERSION="p1.04";
 const BUILTIN = [
 ["Ein Schiff wird kommen","Lale Andersen",1960],["Da sprach der alte Häuptling der Indianer","Gus Backus",1960],
 ["Stand by Me","Ben E. King",1961],["Twist and Shout","The Beatles",1963],["I Want to Hold Your Hand","The Beatles",1963],
@@ -662,7 +671,7 @@ const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()
 try{localStorage.removeItem(KEY_CUSTOM)}catch(e){}
 const NOPREV=new Set(load(KEY_NOPREV,[]));
 let S=load(KEY_GAME,null);
-let setup={n1:"Team 1",n2:"Team 2",target:10,pack:"standard"};
+let setup={n1:"Team 1",n2:"Team 2",target:10,pack:"standard",mode:"sim"};
 const app=document.getElementById("app");
 
 function ytLink(s){
@@ -675,7 +684,7 @@ function renderSetup(msg=""){
   <header style="display:flex;flex-direction:column;gap:6px">
     <span class="label">Musik-Quiz · 2 Teams · Version ${APP_VERSION}</span>
     <h1>Hit-Zeitstrahl</h1>
-    <p class="muted" style="margin:0">Song hören, beide Teams ordnen ihn gleichzeitig im eigenen Zeitstrahl ein. Wer zuerst die Zielzahl an Karten hat, gewinnt.</p>
+    <p class="muted" style="margin:0">Song hören und im eigenen Zeitstrahl nach Erscheinungsjahr einordnen – gleichzeitig oder abwechselnd. Wer zuerst die Zielzahl an Karten hat, gewinnt.</p>
   </header>
   ${S&&!S.winner?`<div class="panel"><div><strong>Laufendes Spiel gefunden</strong><div class="muted">${esc(S.teams[0].name)} ${S.teams[0].cards.length} : ${S.teams[1].cards.length} ${esc(S.teams[1].name)}</div></div>
     <button id="resume">Spiel fortsetzen</button></div>`:""}
@@ -685,6 +694,9 @@ function renderSetup(msg=""){
       <label class="field">Team A<input type="text" id="n1" value="${esc(setup.n1)}" maxlength="24"></label>
       <label class="field">Team B<input type="text" id="n2" value="${esc(setup.n2)}" maxlength="24"></label>
     </div>
+    <label class="field">Spielmodus
+      <select id="mode"><option value="sim" ${setup.mode!=="turn"?"selected":""}>Beide Teams raten gleichzeitig</option><option value="turn" ${setup.mode==="turn"?"selected":""}>Teams raten abwechselnd</option></select>
+    </label>
     <label class="field">Karten zum Sieg
       <select id="target">${[5,8,10,12,15].map(n=>`<option ${n==setup.target?"selected":""}>${n}</option>`).join("")}</select>
     </label>
@@ -699,7 +711,7 @@ function renderSetup(msg=""){
   ${msg?`<div class="hint" role="status">${msg}</div>`:""}
   <button id="start" style="padding:16px">Neues Spiel starten</button>
   <p class="hint" style="margin:0;text-align:center">Version ${APP_VERSION}</p>`;
-  const sync=()=>{setup.pack=document.getElementById("pack").value;setup.n1=n1.value.trim()||"Team 1";setup.n2=n2.value.trim()||"Team 2";setup.target=+target.value};
+  const sync=()=>{setup.pack=document.getElementById("pack").value;setup.mode=document.getElementById("mode").value;setup.n1=n1.value.trim()||"Team 1";setup.n2=n2.value.trim()||"Team 2";setup.target=+target.value};
   const {n1,n2,target}=Object.fromEntries(["n1","n2","target"].map(id=>[id,document.getElementById(id)]));
   document.getElementById("start").onclick=()=>{sync();startGame()};
   document.getElementById("pack").onchange=()=>{sync();renderSetup()};
@@ -712,7 +724,7 @@ function startGame(){
   if(pool.length<setup.target*2+6){renderSetup(`Zu wenige Songs (${pool.length}). Für ${setup.target} Karten pro Team mindestens ${setup.target*2+6} Songs nötig.`);return}
   const deck=shuffle(pool.map(s=>({...s})));
   S={teams:[{name:setup.n1,cards:[deck.pop()]},{name:setup.n2,cards:[deck.pop()]}],
-     target:setup.target,deck,current:deck.pop(),slots:[null,null],phase:"guess",ok:[null,null],round:1,tiebreak:false,winner:null};
+     target:setup.target,deck,current:deck.pop(),slots:[null,null],phase:"guess",ok:[null,null],round:1,tiebreak:false,winner:null,mode:setup.mode,active:0,view:0,roundOk:[null,null]};
   save(KEY_GAME,S);renderGame();
 }
 
@@ -814,7 +826,9 @@ const sortedOf=t=>[...t.cards].sort((x,y)=>x.y-y.y);
 
 function timelineHTML(ti){
   const sorted=sortedOf(S.teams[ti]), sel=S.slots[ti];
-  if(S.phase==="guess"){
+  if(S.phase==="guess"||(S.mode==="turn"&&ti!==S.active)){
+    const ro=S.mode==="turn"&&(ti!==S.active||S.phase!=="guess");
+    if(ro) return sorted.map(c=>cardHTML(c)).join('<div class="gap"></div>');
     let h="";
     for(let i=0;i<=sorted.length;i++){
       const lbl=i===0?"vor "+sorted[0].y:i===sorted.length?"nach "+sorted[i-1].y:`${sorted[i-1].y}–${sorted[i].y}`;
@@ -832,16 +846,18 @@ function timelineHTML(ti){
 
 function renderGame(){
   if(S.winner!=null)return renderWin();
-  const both=S.slots[0]!=null&&S.slots[1]!=null;
+  const turn=S.mode==="turn", A=S.active||0, T=S.teams[A], O=S.teams[1-A];
+  if(S.view==null)S.view=A;
+  const both=turn?S.slots[A]!=null:(S.slots[0]!=null&&S.slots[1]!=null);
   const res=S.phase==="reveal";
   app.innerHTML=`
-  <div class="score">${S.teams.map((t,i)=>`<div class="team ${i?"tb":"ta"} ${!res&&S.slots[i]==null?"active":""}">
+  <div class="score">${S.teams.map((t,i)=>`<div class="team ${i?"tb":"ta"} ${turn?(i===A?"active":""):(!res&&S.slots[i]==null?"active":"")}">
      <span class="name">${esc(t.name)}</span><span class="count">${t.cards.length}<span class="muted" style="font-size:.9rem"> / ${S.target}</span></span>
      <span class="bar"><i style="width:${Math.min(100,t.cards.length/S.target*100)}%"></i></span></div>`).join("")}</div>
 
   <section class="panel" style="--accent:var(--muted)">
     <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap">
-      <span class="label">${S.tiebreak?"Stechen · ":""}Runde ${S.round}</span><span class="hint">${S.deck.length} Songs im Stapel</span>
+      <span class="label">${S.tiebreak?"Stechen · ":""}Runde ${S.round}${turn?" · "+esc(T.name)+" ist dran":""}</span><span class="hint">${S.deck.length} Songs im Stapel</span>
     </div>
     ${!res?`
       <div class="mystery">
@@ -852,26 +868,44 @@ function renderGame(){
           <div class="pbtns"><button class="small ghost" id="skip">Anderer Song</button><a class="small ghost btn" style="padding:8px 14px;font-size:.88rem" href="${esc(ytLink(S.current))}" target="_blank" rel="noopener">YouTube Music</a></div>
         </div>
       </div>
-      <p class="hint" style="margin:0">${S.tiebreak?"Beide Teams haben das Ziel erreicht. Gewonnen hat, wer als einziges Team richtig liegt. ":""}Die Vorschau (ca. 30 Sekunden) spielt verdeckt. Beide Teams wählen eine Lücke in ihrem Zeitstrahl.</p>`
+      <p class="hint" style="margin:0">${S.tiebreak?"Beide Teams haben das Ziel erreicht. Gewonnen hat, wer "+(turn?"in einer Runde ":"")+"als einziges Team richtig liegt. ":""}Die Vorschau (ca. 30 Sekunden) spielt verdeckt. ${turn?esc(T.name)+" wählt eine Lücke im eigenen Zeitstrahl.":"Beide Teams wählen eine Lücke in ihrem Zeitstrahl."}</p>`
     :`<div class="label">Auflösung</div>${cardHTML(S.current)}
-      <div class="row">${S.teams.map((t,i)=>`<div class="result ${S.ok[i]?"good":"wrong"}" style="flex:1 1 140px">${esc(t.name)}: ${S.ok[i]?"richtig":"falsch"}</div>`).join("")}</div>`}
+      <div class="row">${S.teams.map((t,i)=>turn&&i!==A?"":`<div class="result ${S.ok[i]?"good":"wrong"}" style="flex:1 1 140px">${esc(t.name)}: ${S.ok[i]?"richtig":"falsch"}</div>`).join("")}</div>`}
   </section>
 
-  <div class="duo">${S.teams.map((t,i)=>`<section style="${teamVars(i)}">
+  ${turn?`
+  <div class="tabs" role="tablist">${S.teams.map((t,i)=>`<button role="tab" class="tab ${i?"tb":"ta"} ${S.view===i?"on":""}" data-view="${i}" aria-selected="${S.view===i}" style="${teamVars(i)}">${esc(t.name)}${i===A?" ●":""} <span class="tc">${t.cards.length}</span></button>`).join("")}</div>
+  <section class="${S.view===A?"turnbox":"viewbox"}" style="${teamVars(S.view)}">
+    <div class="turnhead">${S.view===A?esc(T.name)+" · ist dran":esc(S.teams[S.view].name)+" · nur Ansicht"}</div>
+    <div class="timeline">${timelineHTML(S.view)}</div>
+  </section>`
+  :`<div class="duo">${S.teams.map((t,i)=>`<section style="${teamVars(i)}">
       <h2 class="colhead">${esc(t.name)}</h2>
-      <div class="timeline">${timelineHTML(i)}</div></section>`).join("")}</div>
+      <div class="timeline">${timelineHTML(i)}</div></section>`).join("")}</div>`}
 
   ${!res
-    ?`<button id="reveal" ${both?"":"disabled"} style="padding:16px">${both?"Auflösen":"Beide Teams wählen eine Lücke"}</button>`
-    :`<button id="next" style="padding:16px">Nächster Song</button>`}
+    ?`<button id="reveal" ${both?"":"disabled"} style="padding:16px">${both?"Auflösen":turn?esc(T.name)+": Lücke wählen":"Beide Teams wählen eine Lücke"}</button>`
+    :`<button id="next" style="padding:16px">${turn?"Weiter: "+esc(O.name)+" ist dran":"Nächster Song"}</button>`}
   <button class="ghost small" id="quit">Zum Menü</button>
   <p class="hint" style="margin:0;text-align:center">Version ${APP_VERSION}</p>`;
 
   app.querySelectorAll("[data-slot]").forEach(b=>b.onclick=()=>{const t=+b.dataset.team,v=+b.dataset.slot;S.slots[t]=S.slots[t]===v?null:v;save(KEY_GAME,S);renderGame()});
+  app.querySelectorAll("[data-view]").forEach(b=>b.onclick=()=>{S.view=+b.dataset.view;renderGame()});
   const q=id=>document.getElementById(id);
   if(q("skip"))q("skip").onclick=()=>{if(!S.deck.length)return endByDeck();S.deck.unshift(S.current);S.current=S.deck.pop();S.slots=[null,null];save(KEY_GAME,S);renderGame()};
   if(q("reveal"))q("reveal").onclick=()=>{
     const y=S.current.y;
+    if(turn){
+      const s=sortedOf(T),k=S.slots[A],l=k>0?s[k-1].y:-Infinity,r=k<s.length?s[k].y:Infinity, ok=l<=y&&y<=r;
+      S.ok=[null,null];S.ok[A]=ok; if(ok)T.cards.push({...S.current,_r:true});
+      S.phase="reveal"; S.view=A; S.roundOk=S.roundOk||[null,null]; S.roundOk[A]=ok;
+      if(A===1){   // Rundenende: beide Teams hatten gleich viele Züge
+        if(S.tiebreak){ if(S.roundOk[0]!==S.roundOk[1]) S.pendingWin=S.roundOk[0]?0:1; }
+        else{ const done=S.teams.map(t=>t.cards.length>=S.target);
+          if(done[0]&&done[1]) S.tiebreak=true; else if(done[0]||done[1]) S.pendingWin=done[0]?0:1; }
+      }
+      save(KEY_GAME,S);renderGame();window.scrollTo({top:0,behavior:"smooth"});return;
+    }
     S.ok=S.teams.map((t,i)=>{const s=sortedOf(t),k=S.slots[i];
       const l=k>0?s[k-1].y:-Infinity,r=k<s.length?s[k].y:Infinity;return l<=y&&y<=r});
     S.teams.forEach((t,i)=>{if(S.ok[i])t.cards.push({...S.current,_r:true})});
@@ -888,7 +922,8 @@ function renderGame(){
     S.teams.forEach(t=>t.cards.forEach(c=>delete c._r));
     if(S.pendingWin!=null){S.winner=S.pendingWin;save(KEY_GAME,S);return renderWin()}
     if(!S.deck.length)return endByDeck();
-    S.current=S.deck.pop();S.slots=[null,null];S.phase="guess";S.ok=[null,null];S.round++;
+    S.current=S.deck.pop();S.slots=[null,null];S.phase="guess";S.ok=[null,null];
+    if(turn){S.active=1-A;S.view=S.active;if(S.active===0){S.round++;S.roundOk=[null,null]}}else S.round++;
     save(KEY_GAME,S);renderGame();window.scrollTo({top:0,behavior:"smooth"});
   };
   q("quit").onclick=()=>{audio.pause();renderSetup()};
