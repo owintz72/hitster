@@ -127,7 +127,7 @@ button:disabled{opacity:.4;cursor:not-allowed}
 <div class="wrap" id="app"></div>
 
 <script>
-const APP_VERSION="p1.04";
+const APP_VERSION="p1.05";
 const BUILTIN = [
 ["Ein Schiff wird kommen","Lale Andersen",1960],["Da sprach der alte Häuptling der Indianer","Gus Backus",1960],
 ["Stand by Me","Ben E. King",1961],["Twist and Shout","The Beatles",1963],["I Want to Hold Your Hand","The Beatles",1963],
@@ -674,9 +674,21 @@ let S=load(KEY_GAME,null);
 let setup={n1:"Team 1",n2:"Team 2",target:10,pack:"standard",mode:"sim"};
 const app=document.getElementById("app");
 
+const SERVICES={
+  ytm:{name:"YouTube Music",url:q=>"https://music.youtube.com/search?q="+q},
+  spotify:{name:"Spotify",url:q=>"https://open.spotify.com/search/"+q},
+  apple:{name:"Apple Music",url:q=>"https://music.apple.com/de/search?term="+q},
+  amazon:{name:"Amazon Music",url:q=>"https://music.amazon.de/search/"+q},
+  deezer:{name:"Deezer",url:q=>"https://www.deezer.com/de/search/"+q},
+  tidal:{name:"Tidal",url:q=>"https://listen.tidal.com/search?q="+q},
+  yt:{name:"YouTube",url:q=>"https://www.youtube.com/results?search_query="+q}
+};
+const KEY_SVC="hz-svc-v1";
+let SVC=(()=>{try{const v=localStorage.getItem(KEY_SVC);return SERVICES[v]?v:"ytm"}catch(e){return "ytm"}})();
+const svcName=()=>SERVICES[SVC].name;
 function ytLink(s){
   if(s.u) return s.u;
-  return "https://music.youtube.com/search?q="+encodeURIComponent(s.a+" "+s.t);
+  return SERVICES[SVC].url(encodeURIComponent(s.a+" "+s.t));
 }
 /* ---------- Setup ---------- */
 function renderSetup(msg=""){
@@ -707,14 +719,19 @@ function renderSetup(msg=""){
       <select id="pack">${Object.entries(PACKS).map(([k,p])=>`<option value="${k}" ${setup.pack===k?"selected":""}>${p.name} (${p.songs.length} Songs)</option>`).join("")}</select>
     </label>
     <p class="hint" style="margin:0">${(()=>{const p=PACKS[setup.pack];return p.info+" · "+Math.min(...p.songs.map(s=>s.y))+"–"+Math.max(...p.songs.map(s=>s.y))})()}</p>
+    <label class="field">Streaming-Dienst
+      <select id="svc">${Object.entries(SERVICES).map(([k,v])=>`<option value="${k}" ${SVC===k?"selected":""}>${v.name}</option>`).join("")}</select>
+    </label>
+    <p class="hint" style="margin:0">Abgespielt wird die 30-Sekunden-Vorschau von iTunes. Dieser Dienst öffnet den Song, wenn keine Vorschau läuft.</p>
   </section>
   ${msg?`<div class="hint" role="status">${msg}</div>`:""}
   <button id="start" style="padding:16px">Neues Spiel starten</button>
   <p class="hint" style="margin:0;text-align:center">Version ${APP_VERSION}</p>`;
-  const sync=()=>{setup.pack=document.getElementById("pack").value;setup.mode=document.getElementById("mode").value;setup.n1=n1.value.trim()||"Team 1";setup.n2=n2.value.trim()||"Team 2";setup.target=+target.value};
+  const sync=()=>{SVC=document.getElementById("svc").value;try{localStorage.setItem(KEY_SVC,SVC)}catch(e){}setup.pack=document.getElementById("pack").value;setup.mode=document.getElementById("mode").value;setup.n1=n1.value.trim()||"Team 1";setup.n2=n2.value.trim()||"Team 2";setup.target=+target.value};
   const {n1,n2,target}=Object.fromEntries(["n1","n2","target"].map(id=>[id,document.getElementById(id)]));
   document.getElementById("start").onclick=()=>{sync();startGame()};
   document.getElementById("pack").onchange=()=>{sync();renderSetup()};
+  document.getElementById("svc").onchange=()=>sync();
   const r=document.getElementById("resume"); if(r) r.onclick=renderGame;
 }
 
@@ -790,7 +807,7 @@ function updatePlayerUI(){
   let msg;
   const neterr=pcache.__neterr===k&&!(k in pcache);
   if(neterr){play.disabled=false;play.textContent="↻ Erneut versuchen"}
-  if(!(k in pcache)) msg=neterr?"Keine Verbindung zu iTunes ("+lastErr+"). Erneut versuchen oder YouTube Music nutzen.":"Vorschau wird geladen …";
+  if(!(k in pcache)) msg=neterr?"Keine Verbindung zu iTunes ("+lastErr+"). Erneut versuchen oder "+svcName()+" nutzen.":"Vorschau wird geladen …";
   else if(!u) msg="Keine Vorschau gefunden – nächster Song wird gesucht …";
   else if(!audio.paused) msg="Läuft · "+fmt(audio.currentTime)+" / "+fmt(audio.duration||30);
   else if(audio.currentTime>0&&!audio.ended) msg="Pausiert · "+fmt(audio.currentTime);
@@ -814,7 +831,7 @@ function setupPlayer(){
     });
   }
   $("play").onclick=()=>{if(pcache.__neterr===keyOf(S.current)&&!(keyOf(S.current) in pcache)){delete pcache.__neterr;loadedKey=null;setupPlayer();return}
-    if(audio.paused){if(audio.ended)audio.currentTime=0;audio.play().catch(()=>{$("pstatus").textContent="Abspielen nicht möglich. YouTube Music nutzen."})}else audio.pause()};
+    if(audio.paused){if(audio.ended)audio.currentTime=0;audio.play().catch(()=>{$("pstatus").textContent="Abspielen nicht möglich. "+svcName()+" nutzen."})}else audio.pause()};
   $("restart").onclick=()=>{audio.currentTime=0;audio.play().catch(()=>{})};
   updatePlayerUI();
 }
@@ -865,7 +882,7 @@ function renderGame(){
         <div class="info">
           <div class="pbtns"><button id="play" disabled>▶ Abspielen</button><button class="ghost" id="restart" disabled aria-label="Von vorn abspielen">↺</button></div>
           <div class="hint" id="pstatus" role="status">Vorschau wird geladen …</div>
-          <div class="pbtns"><button class="small ghost" id="skip">Anderer Song</button><a class="small ghost btn" style="padding:8px 14px;font-size:.88rem" href="${esc(ytLink(S.current))}" target="_blank" rel="noopener">YouTube Music</a></div>
+          <div class="pbtns"><button class="small ghost" id="skip">Anderer Song</button><a class="small ghost btn" style="padding:8px 14px;font-size:.88rem" href="${esc(ytLink(S.current))}" target="_blank" rel="noopener">${esc(svcName())}</a></div>
         </div>
       </div>
       <p class="hint" style="margin:0">${S.tiebreak?"Beide Teams haben das Ziel erreicht. Gewonnen hat, wer "+(turn?"in einer Runde ":"")+"als einziges Team richtig liegt. ":""}Die Vorschau (ca. 30 Sekunden) spielt verdeckt. ${turn?esc(T.name)+" wählt eine Lücke im eigenen Zeitstrahl.":"Beide Teams wählen eine Lücke in ihrem Zeitstrahl."}</p>`
