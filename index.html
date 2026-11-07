@@ -127,7 +127,7 @@ button:disabled{opacity:.4;cursor:not-allowed}
 <div class="wrap" id="app"></div>
 
 <script>
-const APP_VERSION="p1.05";
+const APP_VERSION="p1.06";
 const BUILTIN = [
 ["Ein Schiff wird kommen","Lale Andersen",1960],["Da sprach der alte Häuptling der Indianer","Gus Backus",1960],
 ["Stand by Me","Ben E. King",1961],["Twist and Shout","The Beatles",1963],["I Want to Hold Your Hand","The Beatles",1963],
@@ -722,14 +722,22 @@ function renderSetup(msg=""){
     <label class="field">Streaming-Dienst
       <select id="svc">${Object.entries(SERVICES).map(([k,v])=>`<option value="${k}" ${SVC===k?"selected":""}>${v.name}</option>`).join("")}</select>
     </label>
-    <p class="hint" style="margin:0">Abgespielt wird die 30-Sekunden-Vorschau von iTunes. Dieser Dienst öffnet den Song, wenn keine Vorschau läuft.</p>
+    <p class="hint" style="margin:0">Abgespielt wird die 30-Sekunden-Vorschau von iTunes, ersatzweise von Deezer. Dieser Dienst öffnet den Song, wenn keine Vorschau läuft.</p>
   </section>
   ${msg?`<div class="hint" role="status">${msg}</div>`:""}
+  <section class="panel">
+    <h2>Verbindung</h2>
+    <p class="hint" style="margin:0">Prüft, ob dieses Gerät die Song-Vorschauen erreicht.</p>
+    <button class="small ghost" id="ctest">Verbindung testen</button>
+    <div class="hint" id="cres" role="status" style="white-space:pre-line"></div>
+  </section>
   <button id="start" style="padding:16px">Neues Spiel starten</button>
   <p class="hint" style="margin:0;text-align:center">Version ${APP_VERSION}</p>`;
   const sync=()=>{SVC=document.getElementById("svc").value;try{localStorage.setItem(KEY_SVC,SVC)}catch(e){}setup.pack=document.getElementById("pack").value;setup.mode=document.getElementById("mode").value;setup.n1=n1.value.trim()||"Team 1";setup.n2=n2.value.trim()||"Team 2";setup.target=+target.value};
   const {n1,n2,target}=Object.fromEntries(["n1","n2","target"].map(id=>[id,document.getElementById(id)]));
   document.getElementById("start").onclick=()=>{sync();startGame()};
+  document.getElementById("ctest").onclick=async e=>{e.target.disabled=true;$("cres").textContent="Teste …";
+    const r=await connTest();$("cres").textContent=r.join("\n")+"\nVersion "+APP_VERSION+" · "+navigator.userAgent.replace(/^Mozilla\/5\.0 /,"").slice(0,90);e.target.disabled=false};
   document.getElementById("pack").onchange=()=>{sync();renderSetup()};
   document.getElementById("svc").onchange=()=>sync();
   const r=document.getElementById("resume"); if(r) r.onclick=renderGame;
@@ -755,7 +763,7 @@ const norm=x=>String(x).toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").re
 function jsonp(url){return new Promise((res,rej)=>{
   const cb="itcb"+Math.random().toString(36).slice(2), sc=document.createElement("script");
   const done=()=>{clearTimeout(t);delete window[cb];sc.remove()};
-  const t=setTimeout(()=>{done();rej(new Error("timeout"))},12000);
+  const t=setTimeout(()=>{done();rej(new Error("timeout"))},8000);
   window[cb]=d=>{done();res(d)}; sc.onerror=()=>{done();rej(new Error("net"))};
   sc.src=url+"&callback="+cb; document.head.appendChild(sc);
 })}
@@ -777,7 +785,7 @@ let lastErr="";
 async function api(u){   // 1. Weg: fetch (CORS), 2. Weg: JSONP
   let e1="";
   try{
-    const ctl=new AbortController(), t=setTimeout(()=>ctl.abort(),12000);
+    const ctl=new AbortController(), t=setTimeout(()=>ctl.abort(),8000);
     const r=await fetch(u,{signal:ctl.signal,cache:"no-store"}); clearTimeout(t);
     if(!r.ok) throw new Error("HTTP "+r.status);
     return JSON.parse(await r.text());
@@ -786,16 +794,46 @@ async function api(u){   // 1. Weg: fetch (CORS), 2. Weg: JSONP
   catch(e2){lastErr="F:"+e1+" J:"+(e2&&e2.message||"?");throw e2}
 }
 const IT="https://itunes.apple.com/search?media=music&entity=song&term=";
+const DZ="https://api.deezer.com/search?output=jsonp&limit=25&q=";
+const dzMap=d=>(d&&d.data||[]).map(r=>({previewUrl:r.preview,artistName:r.artist&&r.artist.name,trackName:r.title,collectionName:r.album&&r.album.title}));
+let itunesDown=false, deezerDown=false;
+async function viaItunes(na,nt){
+  let u=bestMatch((await api(IT+encodeURIComponent(na+" "+nt)+"&limit=15&country=DE")).results,na,nt);
+  if(!u) u=bestMatch((await api(IT+encodeURIComponent(nt)+"&limit=25&country=DE")).results,na,nt);
+  return u;
+}
+async function viaDeezer(na,nt){
+  let u=bestMatch(dzMap(await jsonp(DZ+encodeURIComponent('artist:"'+na+'" track:"'+nt+'"'))),na,nt);
+  if(!u) u=bestMatch(dzMap(await jsonp(DZ+encodeURIComponent(na+" "+nt))),na,nt);
+  return u;
+}
 async function findPreview(s){
   const k=keyOf(s); if(k in pcache) return pcache[k];
-  const na=norm(s.a), nt=norm(s.t); let url=null;
-  try{
-    url=bestMatch((await api(IT+encodeURIComponent(na+" "+nt)+"&limit=15&country=DE")).results,na,nt);
-    if(!url) url=bestMatch((await api(IT+encodeURIComponent(nt)+"&limit=25&country=DE")).results,na,nt);
-    if(!url) url=bestMatch((await api(IT+encodeURIComponent(na+" "+nt)+"&limit=15&country=US")).results,na,nt);
-  }catch(e){url=undefined}
-  if(url!==undefined){pcache[k]=url; if(url===null){NOPREV.add(k);save(KEY_NOPREV,[...NOPREV])}}
-  return url;
+  const na=norm(s.a), nt=norm(s.t);
+  const srcs=[["iTunes",viaItunes],["Deezer",viaDeezer]];
+  if(itunesDown) srcs.reverse();      // was zuletzt nicht erreichbar war, kommt nach hinten
+  let url=null, reached=false, errs=[];
+  for(const [name,fn] of srcs){
+    try{ url=await fn(na,nt); reached=true;
+      if(name==="iTunes")itunesDown=false; else deezerDown=false;
+      if(url)break;
+    }catch(e){
+      errs.push(name==="iTunes"?"iTunes "+lastErr:"Deezer "+(e&&e.message||"?"));
+      if(name==="iTunes")itunesDown=true; else deezerDown=true;
+    }
+  }
+  if(!reached){lastErr=errs.join(" · ");return undefined}
+  pcache[k]=url||null;
+  if(!url){NOPREV.add(k);save(KEY_NOPREV,[...NOPREV])}
+  return url||null;
+}
+/* Verbindungstest fürs Menü */
+async function connTest(){
+  const out=[], t=(n,ok,d)=>out.push((ok?"✓ ":"✗ ")+n+(d?" ("+d+")":""));
+  try{const c=new AbortController(),tm=setTimeout(()=>c.abort(),8000);const r=await fetch(IT+"nena&limit=1",{signal:c.signal});clearTimeout(tm);t("iTunes direkt",r.ok,"HTTP "+r.status)}catch(e){t("iTunes direkt",false,e.name||e.message)}
+  try{const d=await jsonp(IT+"nena&limit=1");t("iTunes Skript",true,(d.resultCount??"?")+" Treffer")}catch(e){t("iTunes Skript",false,e.message)}
+  try{const d=await jsonp(DZ+"nena");t("Deezer",true,((d.data||[]).length)+" Treffer")}catch(e){t("Deezer",false,e.message)}
+  return out;
 }
 const fmt=x=>{x=Math.max(0,Math.floor(x||0));return Math.floor(x/60)+":"+String(x%60).padStart(2,"0")};
 function updatePlayerUI(){
@@ -807,7 +845,7 @@ function updatePlayerUI(){
   let msg;
   const neterr=pcache.__neterr===k&&!(k in pcache);
   if(neterr){play.disabled=false;play.textContent="↻ Erneut versuchen"}
-  if(!(k in pcache)) msg=neterr?"Keine Verbindung zu iTunes ("+lastErr+"). Erneut versuchen oder "+svcName()+" nutzen.":"Vorschau wird geladen …";
+  if(!(k in pcache)) msg=neterr?"Keine Verbindung zu iTunes und Deezer ("+lastErr+"). Erneut versuchen oder "+svcName()+" nutzen.":"Vorschau wird geladen …";
   else if(!u) msg="Keine Vorschau gefunden – nächster Song wird gesucht …";
   else if(!audio.paused) msg="Läuft · "+fmt(audio.currentTime)+" / "+fmt(audio.duration||30);
   else if(audio.currentTime>0&&!audio.ended) msg="Pausiert · "+fmt(audio.currentTime);
