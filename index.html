@@ -16,7 +16,7 @@
 /* Layout: eine Spalte, oben Spielstand, Mitte aktuelle Karte, darunter vertikaler Zeitstrahl mit Einfüge-Lücken */
 :root{
   --bg:#f3f1f7; --surface:#ffffff; --ink:#1d1a26; --muted:#6b6579; --line:#dcd7e6;
-  --a:#c2255c; --a-soft:#fbe3ec; --b:#1864ab; --b-soft:#dfecfa;
+  --a:#c2255c; --a-soft:#fbe3ec; --b:#1864ab; --b-soft:#dfecfa; --c:#2b8a3e; --c-soft:#e3f5e6; --d:#d9480f; --d-soft:#fff0e6;
   --ok:#2b8a3e; --ok-soft:#e3f5e6; --bad:#c92a2a; --bad-soft:#fde5e5;
   --vinyl:#24202d;
   --f-display:"Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif;
@@ -26,11 +26,11 @@
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
   --bg:#15131b; --surface:#211e2a; --ink:#f1eef7; --muted:#a59fb3; --line:#363142;
-  --a:#f06595; --a-soft:#3a1d2a; --b:#4dabf7; --b-soft:#162a3d;
+  --a:#f06595; --a-soft:#3a1d2a; --b:#4dabf7; --b-soft:#162a3d; --c:#69db7c; --c-soft:#17301f; --d:#ffa94d; --d-soft:#3a2716;
   --ok:#51cf66; --ok-soft:#173222; --bad:#ff6b6b; --bad-soft:#3a1c1c; --vinyl:#0b0a0f; color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#15131b; --surface:#211e2a; --ink:#f1eef7; --muted:#a59fb3; --line:#363142;
-  --a:#f06595; --a-soft:#3a1d2a; --b:#4dabf7; --b-soft:#162a3d;
+  --a:#f06595; --a-soft:#3a1d2a; --b:#4dabf7; --b-soft:#162a3d; --c:#69db7c; --c-soft:#17301f; --d:#ffa94d; --d-soft:#3a2716;
   --ok:#51cf66; --ok-soft:#173222; --bad:#ff6b6b; --bad-soft:#3a1c1c; --vinyl:#0b0a0f; color-scheme:dark}
 
 *{box-sizing:border-box}
@@ -58,7 +58,18 @@ button:disabled{opacity:.4;cursor:not-allowed}
 :focus-visible{outline:3px solid var(--b);outline-offset:2px}
 
 /* Spielstand */
-.score{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.score{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.score.n3{grid-template-columns:repeat(3,1fr)} .score.n4{grid-template-columns:repeat(4,1fr)}
+@media (max-width:560px){.score.n3,.score.n4{grid-template-columns:repeat(2,1fr)}}
+.team .bar i{background:var(--accent)}
+.team.active{border-color:var(--accent);background:var(--accent-soft)}
+.team .name{color:var(--accent)}
+.toks{display:flex;gap:4px}
+.toks i{width:12px;height:12px;border-radius:50%;border:2px solid var(--accent);opacity:.35}
+.toks i.on{background:var(--accent);opacity:1}
+.slot.chip{border-style:solid;border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+.slot.pick{border-color:var(--accent);color:var(--accent)}
+.hitbox{border:2px dashed var(--accent,var(--line))}
 .team{border-radius:14px;padding:12px 14px;border:2px solid transparent;background:var(--surface);display:flex;flex-direction:column;gap:6px}
 .team .name{font-weight:700;overflow-wrap:anywhere}
 .team .count{font-family:var(--f-mono);font-weight:700;font-size:1.4rem;font-variant-numeric:tabular-nums}
@@ -90,8 +101,9 @@ button:disabled{opacity:.4;cursor:not-allowed}
 .slot:hover{border-color:var(--accent);color:var(--accent)}
 .slot.sel{border-style:solid;border-color:var(--accent);background:var(--accent-soft);color:var(--accent);padding:12px}
 .gap{height:8px}
-.tabs{display:flex;gap:8px}
-.tab{flex:1 1 0;min-width:0;background:var(--surface);color:var(--ink);border:2px solid var(--line);border-radius:12px;padding:10px 12px;font-weight:700;overflow-wrap:anywhere}
+.tabs{display:grid;grid-template-columns:repeat(var(--n,2),1fr);gap:8px}
+@media (max-width:560px){.tabs.n4{--n:2!important}.tabs.n3 .tab{padding:8px 6px;font-size:.88rem}}
+.tab{min-width:0;background:var(--surface);color:var(--ink);border:2px solid var(--line);border-radius:12px;padding:10px 12px;font-weight:700;overflow-wrap:break-word}
 .tab.on{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
 .tab .tc{font-family:var(--f-mono);font-variant-numeric:tabular-nums;opacity:.8}
 .turnbox,.viewbox{border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:8px}
@@ -127,7 +139,7 @@ button:disabled{opacity:.4;cursor:not-allowed}
 <div class="wrap" id="app"></div>
 
 <script>
-const APP_VERSION="p1.06";
+const APP_VERSION="p1.07";
 const BUILTIN = [
 ["Ein Schiff wird kommen","Lale Andersen",1960],["Da sprach der alte Häuptling der Indianer","Gus Backus",1960],
 ["Stand by Me","Ben E. King",1961],["Twist and Shout","The Beatles",1963],["I Want to Hold Your Hand","The Beatles",1963],
@@ -662,7 +674,7 @@ PACKS.alle={name:"Alle Pakete gemischt",info:"alle Pakete zusammen, doppelte Son
   for(const p of Object.values(PACKS))for(const x of p.songs){const k=(x.t+"|"+x.a).toLowerCase();if(!seen.has(k)){seen.add(k);out.push(x)}}
   return out})()};
 
-const KEY_CUSTOM="hz-custom-v1", KEY_GAME="hz-game-v2", KEY_NOPREV="hz-noprev-v1";
+const KEY_CUSTOM="hz-custom-v1", KEY_GAME="hz-game-v3", KEY_SETUP="hz-setup-v1", KEY_NOPREV="hz-noprev-v1";
 const load=(k,d)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}};
 const save=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -671,7 +683,8 @@ const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()
 try{localStorage.removeItem(KEY_CUSTOM)}catch(e){}
 const NOPREV=new Set(load(KEY_NOPREV,[]));
 let S=load(KEY_GAME,null);
-let setup={n1:"Team 1",n2:"Team 2",target:10,pack:"standard",mode:"sim"};
+let setup=Object.assign({n:2,names:["Team 1","Team 2","Team 3","Team 4"],target:10,pack:"standard",mode:"sim",tokens:true,hitster:true},load(KEY_SETUP,{}));
+if(!PACKS[setup.pack])setup.pack="standard";
 const app=document.getElementById("app");
 
 const SERVICES={
@@ -692,26 +705,40 @@ function ytLink(s){
 }
 /* ---------- Setup ---------- */
 function renderSetup(msg=""){
+  const N=setup.n, turnOnly=N>2, mode=turnOnly?"turn":setup.mode;
   app.innerHTML=`
   <header style="display:flex;flex-direction:column;gap:6px">
-    <span class="label">Musik-Quiz · 2 Teams · Version ${APP_VERSION}</span>
+    <span class="label">Musik-Quiz · 2–4 Teams · Version ${APP_VERSION}</span>
     <h1>Hit-Zeitstrahl</h1>
-    <p class="muted" style="margin:0">Song hören und im eigenen Zeitstrahl nach Erscheinungsjahr einordnen – gleichzeitig oder abwechselnd. Wer zuerst die Zielzahl an Karten hat, gewinnt.</p>
+    <p class="muted" style="margin:0">Song hören und im eigenen Zeitstrahl nach Erscheinungsjahr einordnen. Wer zuerst die Zielzahl an Karten hat, gewinnt.</p>
   </header>
-  ${S&&!S.winner?`<div class="panel"><div><strong>Laufendes Spiel gefunden</strong><div class="muted">${esc(S.teams[0].name)} ${S.teams[0].cards.length} : ${S.teams[1].cards.length} ${esc(S.teams[1].name)}</div></div>
+  ${S&&S.winner==null&&S.teams?`<div class="panel"><div><strong>Laufendes Spiel gefunden</strong><div class="muted">${S.teams.map(t=>esc(t.name)+" "+t.cards.length).join(" · ")}</div></div>
     <button id="resume">Spiel fortsetzen</button></div>`:""}
   <section class="panel">
     <h2>Teams</h2>
-    <div class="row">
-      <label class="field">Team A<input type="text" id="n1" value="${esc(setup.n1)}" maxlength="24"></label>
-      <label class="field">Team B<input type="text" id="n2" value="${esc(setup.n2)}" maxlength="24"></label>
-    </div>
-    <label class="field">Spielmodus
-      <select id="mode"><option value="sim" ${setup.mode!=="turn"?"selected":""}>Beide Teams raten gleichzeitig</option><option value="turn" ${setup.mode==="turn"?"selected":""}>Teams raten abwechselnd</option></select>
+    <label class="field">Anzahl Teams
+      <select id="nteams">${[2,3,4].map(n=>`<option ${n===N?"selected":""}>${n}</option>`).join("")}</select>
     </label>
+    <div class="row">${Array.from({length:N},(_,i)=>`<label class="field" style="${teamVars(i)}"><span style="color:var(--accent)">Team ${i+1}</span><input type="text" id="tn${i}" value="${esc(setup.names[i])}" maxlength="24"></label>`).join("")}</div>
+    <label class="field">Spielmodus
+      <select id="mode" ${turnOnly?"disabled":""}>
+        <option value="sim" ${mode==="sim"?"selected":""}>Beide Teams raten gleichzeitig</option>
+        <option value="turn" ${mode==="turn"?"selected":""}>Teams raten abwechselnd</option>
+      </select>
+    </label>
+    ${turnOnly?`<p class="hint" style="margin:0">Bei 3 und 4 Teams wird abwechselnd geraten: Team 1, 2${N>3?", 3, 4":", 3"}, dann wieder von vorn.</p>`:""}
     <label class="field">Karten zum Sieg
       <select id="target">${[5,8,10,12,15].map(n=>`<option ${n==setup.target?"selected":""}>${n}</option>`).join("")}</select>
     </label>
+  </section>
+  <section class="panel">
+    <h2>Regeln</h2>
+    ${mode==="turn"?`
+    <label class="check"><input type="checkbox" id="rtok" ${setup.tokens?"checked":""}> Tokens</label>
+    <p class="hint" style="margin:0 0 0 30px">Jedes Team startet mit 2 Tokens, höchstens 5. Titel + Interpret richtig genannt: +1 Token. Song überspringen: 1 Token. Karte ohne Raten kaufen: 3 Tokens.</p>
+    <label class="check"><input type="checkbox" id="rhit" ${setup.hitster&&setup.tokens?"checked":""} ${setup.tokens?"":"disabled"}> HITSTER! – Karte klauen</label>
+    <p class="hint" style="margin:0 0 0 30px">Bevor aufgelöst wird, darf jedes andere Team einen Token auf eine andere Lücke setzen. Liegt das aktive Team falsch und das andere richtig, wandert die Karte zu ihm. Sonst ist der Token weg.${setup.tokens?"":" Braucht die Token-Regel."}</p>`
+    :`<p class="hint" style="margin:0">Tokens und HITSTER! gibt es nur, wenn abwechselnd geraten wird.</p>`}
   </section>
   <section class="panel">
     <h2>Songs</h2>
@@ -733,26 +760,37 @@ function renderSetup(msg=""){
   </section>
   <button id="start" style="padding:16px">Neues Spiel starten</button>
   <p class="hint" style="margin:0;text-align:center">Version ${APP_VERSION}</p>`;
-  const sync=()=>{SVC=document.getElementById("svc").value;try{localStorage.setItem(KEY_SVC,SVC)}catch(e){}setup.pack=document.getElementById("pack").value;setup.mode=document.getElementById("mode").value;setup.n1=n1.value.trim()||"Team 1";setup.n2=n2.value.trim()||"Team 2";setup.target=+target.value};
-  const {n1,n2,target}=Object.fromEntries(["n1","n2","target"].map(id=>[id,document.getElementById(id)]));
-  document.getElementById("start").onclick=()=>{sync();startGame()};
-  document.getElementById("ctest").onclick=async e=>{e.target.disabled=true;$("cres").textContent="Teste …";
-    const r=await connTest();$("cres").textContent=r.join("\n")+"\nVersion "+APP_VERSION+" · "+navigator.userAgent.replace(/^Mozilla\/5\.0 /,"").slice(0,90);e.target.disabled=false};
-  document.getElementById("pack").onchange=()=>{sync();renderSetup()};
-  document.getElementById("svc").onchange=()=>sync();
-  const r=document.getElementById("resume"); if(r) r.onclick=renderGame;
+  const g=id=>document.getElementById(id);
+  const sync=()=>{
+    SVC=g("svc").value;try{localStorage.setItem(KEY_SVC,SVC)}catch(e){}
+    setup.pack=g("pack").value; setup.target=+g("target").value;
+    for(let i=0;i<setup.n;i++){const el=g("tn"+i);if(el)setup.names[i]=el.value.trim()||("Team "+(i+1))}
+    if(!g("mode").disabled)setup.mode=g("mode").value;
+    if(g("rtok"))setup.tokens=g("rtok").checked;
+    if(g("rhit"))setup.hitster=g("rhit").checked;
+    save(KEY_SETUP,setup);
+  };
+  g("start").onclick=()=>{sync();startGame()};
+  g("ctest").onclick=async e=>{e.target.disabled=true;g("cres").textContent="Teste …";
+    const r=await connTest();g("cres").textContent=r.join("\n")+"\nVersion "+APP_VERSION+" · "+navigator.userAgent.replace(/^Mozilla\/5\.0 /,"").slice(0,90);e.target.disabled=false};
+  ["pack","nteams","mode","rtok"].forEach(id=>{const el=g(id);if(el)el.onchange=()=>{if(id==="nteams")setup.n=+el.value;sync();renderSetup()}});
+  ["svc","rhit","target"].forEach(id=>{const el=g(id);if(el)el.onchange=sync});
+  const r=g("resume"); if(r) r.onclick=renderGame;
 }
 
 function startGame(){
-  let pool=[];
-  pool=pool.concat(PACKS[setup.pack].songs.filter(x=>!NOPREV.has(keyOf(x))));
-  if(pool.length<setup.target*2+6){renderSetup(`Zu wenige Songs (${pool.length}). Für ${setup.target} Karten pro Team mindestens ${setup.target*2+6} Songs nötig.`);return}
+  const N=setup.n, mode=N>2?"turn":setup.mode;
+  const pool=PACKS[setup.pack].songs.filter(x=>!NOPREV.has(keyOf(x)));
+  const need=setup.target*N+10;
+  if(pool.length<need){renderSetup(`Zu wenige Songs (${pool.length}). Für ${setup.target} Karten bei ${N} Teams mindestens ${need} Songs nötig.`);return}
   const deck=shuffle(pool.map(s=>({...s})));
-  S={teams:[{name:setup.n1,cards:[deck.pop()]},{name:setup.n2,cards:[deck.pop()]}],
-     target:setup.target,deck,current:deck.pop(),slots:[null,null],phase:"guess",ok:[null,null],round:1,tiebreak:false,winner:null,mode:setup.mode,active:0,view:0,roundOk:[null,null]};
+  const tok=mode==="turn"&&setup.tokens, hit=tok&&setup.hitster;
+  S={n:N,mode,rules:{tok,hit},
+     teams:Array.from({length:N},(_,i)=>({name:setup.names[i]||("Team "+(i+1)),cards:[deck.pop()],tok:tok?2:0})),
+     target:setup.target,deck,current:deck.pop(),phase:"guess",round:1,tiebreak:false,winner:null,
+     active:0,view:0,slots:Array(N).fill(null),ok:Array(N).fill(null),ch:{},chPick:null,res:null};
   save(KEY_GAME,S);renderGame();
 }
-
 
 /* ---------- Verdeckter Player (iTunes-Vorschau) ---------- */
 const audio=new Audio(); audio.preload="auto";
@@ -809,6 +847,7 @@ async function viaDeezer(na,nt){
 }
 async function findPreview(s){
   const k=keyOf(s); if(k in pcache) return pcache[k];
+  if(itunesDown&&deezerDown) return undefined;
   const na=norm(s.a), nt=norm(s.t);
   const srcs=[["iTunes",viaItunes],["Deezer",viaDeezer]];
   if(itunesDown) srcs.reverse();      // was zuletzt nicht erreichbar war, kommt nach hinten
@@ -845,7 +884,7 @@ function updatePlayerUI(){
   let msg;
   const neterr=pcache.__neterr===k&&!(k in pcache);
   if(neterr){play.disabled=false;play.textContent="↻ Erneut versuchen"}
-  if(!(k in pcache)) msg=neterr?"Keine Verbindung zu iTunes und Deezer ("+lastErr+"). Erneut versuchen oder "+svcName()+" nutzen.":"Vorschau wird geladen …";
+  if(!(k in pcache)) msg=neterr?"Keine Vorschau erreichbar ("+lastErr+"). Song über "+svcName()+" abspielen oder erneut versuchen.":"Vorschau wird geladen …";
   else if(!u) msg="Keine Vorschau gefunden – nächster Song wird gesucht …";
   else if(!audio.paused) msg="Läuft · "+fmt(audio.currentTime)+" / "+fmt(audio.duration||30);
   else if(audio.currentTime>0&&!audio.ended) msg="Pausiert · "+fmt(audio.currentTime);
@@ -868,49 +907,113 @@ function setupPlayer(){
       const nx=S.deck[S.deck.length-1]; if(nx)findPreview(nx);   // nächsten Song vorladen
     });
   }
-  $("play").onclick=()=>{if(pcache.__neterr===keyOf(S.current)&&!(keyOf(S.current) in pcache)){delete pcache.__neterr;loadedKey=null;setupPlayer();return}
+  $("play").onclick=()=>{if(pcache.__neterr===keyOf(S.current)&&!(keyOf(S.current) in pcache)){delete pcache.__neterr;itunesDown=deezerDown=false;loadedKey=null;setupPlayer();return}
     if(audio.paused){if(audio.ended)audio.currentTime=0;audio.play().catch(()=>{$("pstatus").textContent="Abspielen nicht möglich. "+svcName()+" nutzen."})}else audio.pause()};
   $("restart").onclick=()=>{audio.currentTime=0;audio.play().catch(()=>{})};
   updatePlayerUI();
 }
 
 /* ---------- Spiel ---------- */
-function teamVars(i){return i===0?"--accent:var(--a);--accent-soft:var(--a-soft)":"--accent:var(--b);--accent-soft:var(--b-soft)"}
+const TEAMC=["a","b","c","d"];
+function teamVars(i){const c=TEAMC[i%4];return `--accent:var(--${c});--accent-soft:var(--${c}-soft)`}
 function cardHTML(c,extra=""){return `<div class="card ${extra}"><span class="yr">${c.y}</span><div style="min-width:0"><div class="t">${esc(c.t)}</div><div class="a">${esc(c.a)}</div></div></div>`}
 const sortedOf=t=>[...t.cards].sort((x,y)=>x.y-y.y);
+const slotOk=(team,k,y)=>{const s=sortedOf(team),l=k>0?s[k-1].y:-Infinity,r=k<s.length?s[k].y:Infinity;return l<=y&&y<=r};
+const MAXTOK=5;
+const tokHTML=n=>`<span class="toks" aria-label="${n} Tokens">${Array.from({length:MAXTOK},(_,i)=>`<i class="${i<n?"on":""}"></i>`).join("")}</span>`;
+
+/* Rundenende: führt genau ein Team mit Zielzahl erreicht -> Sieg; Gleichstand an der Spitze -> Stechen */
+function checkRoundEnd(){
+  const c=S.teams.map(t=>t.cards.length), mx=Math.max(...c);
+  if(mx<S.target)return;
+  const lead=c.map((v,i)=>v===mx?i:-1).filter(i=>i>=0);
+  if(lead.length===1)S.pendingWin=lead[0]; else S.tiebreak=true;
+}
+
+function slotLabel(sorted,i){return i===0?"vor "+sorted[0].y:i===sorted.length?"nach "+sorted[i-1].y:`${sorted[i-1].y}–${sorted[i].y}`}
 
 function timelineHTML(ti){
-  const sorted=sortedOf(S.teams[ti]), sel=S.slots[ti];
-  if(S.phase==="guess"||(S.mode==="turn"&&ti!==S.active)){
-    const ro=S.mode==="turn"&&(ti!==S.active||S.phase!=="guess");
-    if(ro) return sorted.map(c=>cardHTML(c)).join('<div class="gap"></div>');
-    let h="";
+  const turn=S.mode==="turn", sorted=sortedOf(S.teams[ti]);
+  // Ansicht ohne Lücken: fremde Zeitstrahlen im Abwechsel-Modus
+  if(turn&&ti!==S.active) return sorted.map(c=>cardHTML(c)).join('<div class="gap"></div>');
+  if(S.phase==="guess"){
+    const sel=S.slots[ti]; let h="";
+    const chAt={}; if(turn)for(const [t,k] of Object.entries(S.ch||{}))chAt[k]=+t;
     for(let i=0;i<=sorted.length;i++){
-      const lbl=i===0?"vor "+sorted[0].y:i===sorted.length?"nach "+sorted[i-1].y:`${sorted[i-1].y}–${sorted[i].y}`;
-      h+=`<button class="slot ${sel===i?"sel":""}" data-team="${ti}" data-slot="${i}" aria-pressed="${sel===i}">${sel===i?"✓ hier":"+ "+lbl}</button>`;
+      const lbl=slotLabel(sorted,i);
+      if(chAt[i]!=null){const t=chAt[i];
+        h+=`<button class="slot chip" data-unch="${t}" style="${teamVars(t)}" aria-label="HITSTER von ${esc(S.teams[t].name)} entfernen">HITSTER! ${esc(S.teams[t].name)} ✕</button>`;
+      } else if(turn&&S.chPick!=null){
+        h+=`<button class="slot pick" data-ch="${i}" ${sel===i?"disabled":""} style="${teamVars(S.chPick)}">${sel===i?"✓ "+esc(S.teams[ti].name):"Token hierhin: "+lbl}</button>`;
+      } else {
+        h+=`<button class="slot ${sel===i?"sel":""}" data-team="${ti}" data-slot="${i}" aria-pressed="${sel===i}">${sel===i?"✓ hier":"+ "+lbl}</button>`;
+      }
       if(i<sorted.length)h+=cardHTML(sorted[i]);
     }
     return h;
   }
-  // Auflösung: richtige Karte ist bereits im Zeitstrahl; falsche an gewählter Stelle rot zeigen
+  // Auflösung
+  if(turn){
+    const R=S.res||{}; let list=[...sorted];
+    if(R.bought||R.ok) list=sorted.map(c=>c._r?{...c,_new:true}:c);
+    else list.splice(S.slots[ti],0,{...S.current,_new:true});
+    return list.map(c=>cardHTML(c,c._new?"new "+(R.bought||R.ok?"good":"wrong"):"")).join('<div class="gap"></div>');
+  }
   let list;
   if(S.ok[ti]) list=sorted.map(c=>c._r?{...c,_new:true}:c);
-  else {list=[...sorted];list.splice(sel,0,{...S.current,_new:true});}
+  else {list=[...sorted];list.splice(S.slots[ti],0,{...S.current,_new:true});}
   return list.map(c=>cardHTML(c,c._new?"new "+(S.ok[ti]?"good":"wrong"):"")).join('<div class="gap"></div>');
 }
 
 function renderGame(){
   if(S.winner!=null)return renderWin();
-  const turn=S.mode==="turn", A=S.active||0, T=S.teams[A], O=S.teams[1-A];
+  const turn=S.mode==="turn", N=S.n||S.teams.length, A=S.active||0, T=S.teams[A], NX=S.teams[(A+1)%N];
+  const tok=!!(S.rules&&S.rules.tok), hit=!!(S.rules&&S.rules.hit);
   if(S.view==null)S.view=A;
-  const both=turn?S.slots[A]!=null:(S.slots[0]!=null&&S.slots[1]!=null);
-  const res=S.phase==="reveal";
-  app.innerHTML=`
-  <div class="score">${S.teams.map((t,i)=>`<div class="team ${i?"tb":"ta"} ${turn?(i===A?"active":""):(!res&&S.slots[i]==null?"active":"")}">
-     <span class="name">${esc(t.name)}</span><span class="count">${t.cards.length}<span class="muted" style="font-size:.9rem"> / ${S.target}</span></span>
-     <span class="bar"><i style="width:${Math.min(100,t.cards.length/S.target*100)}%"></i></span></div>`).join("")}</div>
+  const res=S.phase==="reveal", R=S.res||{};
+  const ready=turn?S.slots[A]!=null:S.slots.every(v=>v!=null);
+  const others=S.teams.map((t,i)=>i).filter(i=>i!==A);
 
-  <section class="panel" style="--accent:var(--muted)">
+  // Ergebniszeilen
+  let resultHTML="";
+  if(res){
+    if(turn){
+      const lines=[];
+      if(R.bought) lines.push(`<div class="result good">${esc(T.name)} hat die Karte für 3 Tokens gekauft.</div>`);
+      else lines.push(`<div class="result ${R.ok?"good":"wrong"}">${esc(T.name)}: ${R.ok?"richtig – Karte bleibt":"falsch – Karte ist weg"}</div>`);
+      if(R.stolen!=null) lines.push(`<div class="result good" style="${teamVars(R.stolen)}">HITSTER! ${esc(S.teams[R.stolen].name)} klaut die Karte.</div>`);
+      (R.lost||[]).forEach(t=>lines.push(`<div class="result wrong">${esc(S.teams[t].name)} verliert den HITSTER-Token.</div>`));
+      if(tok&&!R.bought) lines.push(R.earned
+        ?`<div class="hint">+1 Token für ${esc(T.name)} vergeben.</div>`
+        :`<button class="small ghost" id="earn" ${T.tok>=MAXTOK?"disabled":""}>✓ Titel + Interpret richtig genannt (+1 Token)${T.tok>=MAXTOK?" – Maximum erreicht":""}</button>`);
+      resultHTML=`<div style="display:flex;flex-direction:column;gap:8px">${lines.join("")}</div>`;
+    } else {
+      resultHTML=`<div class="row">${S.teams.map((t,i)=>`<div class="result ${S.ok[i]?"good":"wrong"}" style="flex:1 1 140px">${esc(t.name)}: ${S.ok[i]?"richtig":"falsch"}</div>`).join("")}</div>`;
+    }
+  }
+
+  // HITSTER-Bereich (nur Abwechsel-Modus, vor dem Auflösen)
+  let hitHTML="";
+  if(turn&&hit&&!res){
+    if(S.chPick!=null){
+      hitHTML=`<div class="panel hitbox" style="${teamVars(S.chPick)}"><strong>${esc(S.teams[S.chPick].name)}: Lücke im Zeitstrahl von ${esc(T.name)} antippen</strong>
+        <button class="small ghost" id="chcancel">Abbrechen</button></div>`;
+    } else {
+      const btns=others.map(i=>{const t=S.teams[i],has=S.ch&&S.ch[i]!=null;
+        return `<button class="small ghost" data-chteam="${i}" style="${teamVars(i)};border-color:var(--accent);color:var(--accent)" ${(!ready||has||t.tok<1)?"disabled":""}>${esc(t.name)}: HITSTER! ${has?"✓":"(1 Token)"}</button>`}).join("");
+      hitHTML=`<div class="panel hitbox"><strong>HITSTER! – Karte klauen</strong>
+        <p class="hint" style="margin:0">${ready?"Andere Teams dürfen jetzt einen Token auf eine andere Lücke setzen.":"Zuerst wählt "+esc(T.name)+" eine Lücke."}</p>
+        <div class="pbtns">${btns}</div></div>`;
+    }
+  }
+
+  app.innerHTML=`
+  <div class="score n${N}">${S.teams.map((t,i)=>`<div class="team ${turn?(i===A?"active":""):(!res&&S.slots[i]==null?"active":"")}" style="${teamVars(i)}">
+     <span class="name">${esc(t.name)}</span><span class="count">${t.cards.length}<span class="muted" style="font-size:.9rem"> / ${S.target}</span></span>
+     <span class="bar"><i style="width:${Math.min(100,t.cards.length/S.target*100)}%"></i></span>
+     ${tok?tokHTML(t.tok):""}</div>`).join("")}</div>
+
+  <section class="panel">
     <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap">
       <span class="label">${S.tiebreak?"Stechen · ":""}Runde ${S.round}${turn?" · "+esc(T.name)+" ist dran":""}</span><span class="hint">${S.deck.length} Songs im Stapel</span>
     </div>
@@ -920,74 +1023,91 @@ function renderGame(){
         <div class="info">
           <div class="pbtns"><button id="play" disabled>▶ Abspielen</button><button class="ghost" id="restart" disabled aria-label="Von vorn abspielen">↺</button></div>
           <div class="hint" id="pstatus" role="status">Vorschau wird geladen …</div>
-          <div class="pbtns"><button class="small ghost" id="skip">Anderer Song</button><a class="small ghost btn" style="padding:8px 14px;font-size:.88rem" href="${esc(ytLink(S.current))}" target="_blank" rel="noopener">${esc(svcName())}</a></div>
+          <div class="pbtns">
+            <button class="small ghost" id="skip" ${turn&&tok&&T.tok<1?"disabled":""}>${turn&&tok?"Überspringen (1 Token)":"Anderer Song"}</button>
+            ${turn&&tok?`<button class="small ghost" id="buy" ${T.tok<3?"disabled":""}>Karte kaufen (3 Tokens)</button>`:""}
+            <a class="small ghost btn" style="padding:8px 14px;font-size:.88rem" href="${esc(ytLink(S.current))}" target="_blank" rel="noopener">${esc(svcName())}</a>
+          </div>
         </div>
       </div>
-      <p class="hint" style="margin:0">${S.tiebreak?"Beide Teams haben das Ziel erreicht. Gewonnen hat, wer "+(turn?"in einer Runde ":"")+"als einziges Team richtig liegt. ":""}Die Vorschau (ca. 30 Sekunden) spielt verdeckt. ${turn?esc(T.name)+" wählt eine Lücke im eigenen Zeitstrahl.":"Beide Teams wählen eine Lücke in ihrem Zeitstrahl."}</p>`
-    :`<div class="label">Auflösung</div>${cardHTML(S.current)}
-      <div class="row">${S.teams.map((t,i)=>turn&&i!==A?"":`<div class="result ${S.ok[i]?"good":"wrong"}" style="flex:1 1 140px">${esc(t.name)}: ${S.ok[i]?"richtig":"falsch"}</div>`).join("")}</div>`}
+      <p class="hint" style="margin:0">${S.tiebreak?"Stechen: Gewonnen hat, wer nach einer Runde allein vorn liegt. ":""}${turn?esc(T.name)+" wählt eine Lücke im eigenen Zeitstrahl.":"Beide Teams wählen eine Lücke in ihrem Zeitstrahl."}</p>`
+    :`<div class="label">Auflösung</div>${cardHTML(S.current)}${resultHTML}`}
   </section>
 
   ${turn?`
-  <div class="tabs" role="tablist">${S.teams.map((t,i)=>`<button role="tab" class="tab ${i?"tb":"ta"} ${S.view===i?"on":""}" data-view="${i}" aria-selected="${S.view===i}" style="${teamVars(i)}">${esc(t.name)}${i===A?" ●":""} <span class="tc">${t.cards.length}</span></button>`).join("")}</div>
+  <div class="tabs n${N}" role="tablist" style="--n:${N}">${S.teams.map((t,i)=>`<button role="tab" class="tab ${S.view===i?"on":""}" data-view="${i}" aria-selected="${S.view===i}" style="${teamVars(i)}">${esc(t.name)}${i===A?" ●":""} <span class="tc">${t.cards.length}</span></button>`).join("")}</div>
   <section class="${S.view===A?"turnbox":"viewbox"}" style="${teamVars(S.view)}">
     <div class="turnhead">${S.view===A?esc(T.name)+" · ist dran":esc(S.teams[S.view].name)+" · nur Ansicht"}</div>
     <div class="timeline">${timelineHTML(S.view)}</div>
-  </section>`
+  </section>
+  ${S.view===A?hitHTML:""}`
   :`<div class="duo">${S.teams.map((t,i)=>`<section style="${teamVars(i)}">
       <h2 class="colhead">${esc(t.name)}</h2>
       <div class="timeline">${timelineHTML(i)}</div></section>`).join("")}</div>`}
 
   ${!res
-    ?`<button id="reveal" ${both?"":"disabled"} style="padding:16px">${both?"Auflösen":turn?esc(T.name)+": Lücke wählen":"Beide Teams wählen eine Lücke"}</button>`
-    :`<button id="next" style="padding:16px">${turn?"Weiter: "+esc(O.name)+" ist dran":"Nächster Song"}</button>`}
+    ?`<button id="reveal" ${ready&&S.chPick==null?"":"disabled"} style="padding:16px">${ready?"Auflösen":turn?esc(T.name)+": Lücke wählen":"Beide Teams wählen eine Lücke"}</button>`
+    :`<button id="next" style="padding:16px">${turn?"Weiter: "+esc(NX.name)+" ist dran":"Nächster Song"}</button>`}
   <button class="ghost small" id="quit">Zum Menü</button>
   <p class="hint" style="margin:0;text-align:center">Version ${APP_VERSION}</p>`;
 
-  app.querySelectorAll("[data-slot]").forEach(b=>b.onclick=()=>{const t=+b.dataset.team,v=+b.dataset.slot;S.slots[t]=S.slots[t]===v?null:v;save(KEY_GAME,S);renderGame()});
-  app.querySelectorAll("[data-view]").forEach(b=>b.onclick=()=>{S.view=+b.dataset.view;renderGame()});
   const q=id=>document.getElementById(id);
-  if(q("skip"))q("skip").onclick=()=>{if(!S.deck.length)return endByDeck();S.deck.unshift(S.current);S.current=S.deck.pop();S.slots=[null,null];save(KEY_GAME,S);renderGame()};
+  const commit=()=>{save(KEY_GAME,S);renderGame()};
+  app.querySelectorAll("[data-view]").forEach(b=>b.onclick=()=>{S.view=+b.dataset.view;S.chPick=null;renderGame()});
+  app.querySelectorAll("[data-slot]").forEach(b=>b.onclick=()=>{const t=+b.dataset.team,v=+b.dataset.slot;S.slots[t]=S.slots[t]===v?null:v;
+    if(turn&&S.slots[A]==null){for(const k in S.ch){S.teams[k].tok++;} S.ch={};}   // Lücke abgewählt: Herausforderungen zurück
+    commit()});
+  app.querySelectorAll("[data-chteam]").forEach(b=>b.onclick=()=>{S.chPick=+b.dataset.chteam;S.view=A;renderGame()});
+  app.querySelectorAll("[data-ch]").forEach(b=>b.onclick=()=>{const t=S.chPick;if(t==null)return;
+    S.ch=S.ch||{};S.ch[t]=+b.dataset.ch;S.teams[t].tok--;S.chPick=null;commit()});
+  app.querySelectorAll("[data-unch]").forEach(b=>b.onclick=()=>{const t=+b.dataset.unch;delete S.ch[t];S.teams[t].tok++;commit()});
+  if(q("chcancel"))q("chcancel").onclick=()=>{S.chPick=null;renderGame()};
+  if(q("skip"))q("skip").onclick=()=>{
+    if(turn&&tok){if(T.tok<1)return;T.tok--;}
+    if(!S.deck.length)return endByDeck();
+    S.deck.unshift(S.current);S.current=S.deck.pop();S.slots=S.slots.map(()=>null);
+    for(const k in (S.ch||{}))S.teams[k].tok++; S.ch={}; S.chPick=null; commit()};
+  if(q("buy"))q("buy").onclick=()=>{if(T.tok<3)return;T.tok-=3;
+    for(const k in (S.ch||{}))S.teams[k].tok++; S.ch={}; S.chPick=null;
+    T.cards.push({...S.current,_r:true}); S.res={bought:true,ok:true}; S.phase="reveal"; audio.pause();
+    if(A===N-1)checkRoundEnd(); commit(); window.scrollTo({top:0,behavior:"smooth"})};
+  if(q("earn"))q("earn").onclick=()=>{if(T.tok<MAXTOK)T.tok++;S.res.earned=true;commit()};
   if(q("reveal"))q("reveal").onclick=()=>{
-    const y=S.current.y;
+    const y=S.current.y; audio.pause();
     if(turn){
-      const s=sortedOf(T),k=S.slots[A],l=k>0?s[k-1].y:-Infinity,r=k<s.length?s[k].y:Infinity, ok=l<=y&&y<=r;
-      S.ok=[null,null];S.ok[A]=ok; if(ok)T.cards.push({...S.current,_r:true});
-      S.phase="reveal"; S.view=A; S.roundOk=S.roundOk||[null,null]; S.roundOk[A]=ok;
-      if(A===1){   // Rundenende: beide Teams hatten gleich viele Züge
-        if(S.tiebreak){ if(S.roundOk[0]!==S.roundOk[1]) S.pendingWin=S.roundOk[0]?0:1; }
-        else{ const done=S.teams.map(t=>t.cards.length>=S.target);
-          if(done[0]&&done[1]) S.tiebreak=true; else if(done[0]||done[1]) S.pendingWin=done[0]?0:1; }
+      const ok=slotOk(T,S.slots[A],y); const r={ok,stolen:null,lost:[]};
+      if(ok){ T.cards.push({...S.current,_r:true}); r.lost=Object.keys(S.ch||{}).map(Number); }
+      else{
+        for(const [t,k] of Object.entries(S.ch||{})){const ti=+t;
+          if(r.stolen==null&&slotOk(T,k,y)){
+            r.stolen=ti; S.teams[ti].cards.push({...S.current}); S.teams[ti].tok=Math.min(MAXTOK,S.teams[ti].tok+1);
+          } else r.lost.push(ti);
+        }
       }
-      save(KEY_GAME,S);renderGame();window.scrollTo({top:0,behavior:"smooth"});return;
+      S.res=r; S.phase="reveal"; S.view=A; S.chPick=null;
+      if(A===N-1)checkRoundEnd();
+    } else {
+      S.ok=S.teams.map((t,i)=>slotOk(t,S.slots[i],y));
+      S.teams.forEach((t,i)=>{if(S.ok[i])t.cards.push({...S.current,_r:true})});
+      S.phase="reveal"; checkRoundEnd();
     }
-    S.ok=S.teams.map((t,i)=>{const s=sortedOf(t),k=S.slots[i];
-      const l=k>0?s[k-1].y:-Infinity,r=k<s.length?s[k].y:Infinity;return l<=y&&y<=r});
-    S.teams.forEach((t,i)=>{if(S.ok[i])t.cards.push({...S.current,_r:true})});
-    S.phase="reveal";
-    // Siegprüfung
-    if(S.tiebreak){ if(S.ok[0]!==S.ok[1]) S.pendingWin=S.ok[0]?0:1; }
-    else{
-      const done=S.teams.map(t=>t.cards.length>=S.target);
-      if(done[0]&&done[1]) S.tiebreak=true; else if(done[0]||done[1]) S.pendingWin=done[0]?0:1;
-    }
-    save(KEY_GAME,S);renderGame();window.scrollTo({top:0,behavior:"smooth"});
+    commit();window.scrollTo({top:0,behavior:"smooth"});
   };
   if(q("next"))q("next").onclick=()=>{
     S.teams.forEach(t=>t.cards.forEach(c=>delete c._r));
     if(S.pendingWin!=null){S.winner=S.pendingWin;save(KEY_GAME,S);return renderWin()}
     if(!S.deck.length)return endByDeck();
-    S.current=S.deck.pop();S.slots=[null,null];S.phase="guess";S.ok=[null,null];
-    if(turn){S.active=1-A;S.view=S.active;if(S.active===0){S.round++;S.roundOk=[null,null]}}else S.round++;
-    save(KEY_GAME,S);renderGame();window.scrollTo({top:0,behavior:"smooth"});
+    S.current=S.deck.pop();S.slots=S.slots.map(()=>null);S.phase="guess";S.ok=S.ok.map(()=>null);S.ch={};S.chPick=null;S.res=null;
+    if(turn){S.active=(A+1)%N;S.view=S.active;if(S.active===0)S.round++;}else S.round++;
+    commit();window.scrollTo({top:0,behavior:"smooth"});
   };
   q("quit").onclick=()=>{audio.pause();renderSetup()};
   setupPlayer();
 }
 
 function endByDeck(){
-  const [a,b]=S.teams.map(t=>t.cards.length);
-  S.winner=a===b?-1:(a>b?0:1);save(KEY_GAME,S);renderWin("Der Stapel ist leer.");
+  const c=S.teams.map(t=>t.cards.length), mx=Math.max(...c), lead=c.filter(v=>v===mx).length;
+  S.winner=lead>1?-1:c.indexOf(mx);save(KEY_GAME,S);renderWin("Der Stapel ist leer.");
 }
 
 function renderWin(note=""){
@@ -996,12 +1116,12 @@ function renderWin(note=""){
   <section class="panel win" style="${w>=0?teamVars(w):""}">
     <span class="label">${note||"Spielende"}</span>
     <div class="big" style="color:var(--accent,var(--ink))">${w<0?"Unentschieden":esc(S.teams[w].name)+" gewinnt!"}</div>
-    <div style="font-family:var(--f-mono);font-size:1.3rem;font-weight:700">${S.teams[0].cards.length} : ${S.teams[1].cards.length}</div>
+    <div style="font-family:var(--f-mono);font-size:1.3rem;font-weight:700">${S.teams.map(t=>t.cards.length).join(" : ")}</div>
   </section>
-  ${S.teams.map((t,i)=>`<section style="${teamVars(i)};display:flex;flex-direction:column;gap:8px"><h2>${esc(t.name)}</h2>
-    ${[...t.cards].sort((x,y)=>x.y-y.y).map(c=>cardHTML(c)).join("")}</section>`).join("")}
+  ${S.teams.map((t,i)=>`<section style="${teamVars(i)};display:flex;flex-direction:column;gap:8px"><h2 style="color:var(--accent)">${esc(t.name)}</h2>
+    ${sortedOf(t).map(c=>cardHTML(c)).join("")}</section>`).join("")}
   <button id="again" style="padding:16px">Neues Spiel</button>`;
-  document.getElementById("again").onclick=()=>{setup.n1=S.teams[0].name;setup.n2=S.teams[1].name;S=null;save(KEY_GAME,null);renderSetup()};
+  document.getElementById("again").onclick=()=>{S.teams.forEach((t,i)=>setup.names[i]=t.name);S=null;save(KEY_GAME,null);renderSetup()};
 }
 
 if(S&&S.winner!=null){S=null}
