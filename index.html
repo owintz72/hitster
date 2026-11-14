@@ -169,6 +169,28 @@ button.mteam{cursor:pointer}
 .svc{padding:8px 14px;font-size:.88rem;margin-left:auto}
 .gfoot #reveal,.gfoot #next{width:100%;padding:14px}
 @media (max-width:560px){.ghead .tabs.n4{--n:4!important}.ghead .tabs .tab{font-size:.78rem;padding:6px 4px}}
+/* Zeitstrahl hell (Variante 2): weißer Grund, hellgraue Karten, Lücken als Knöpfe in Teamfarbe – in beiden Themes gleich */
+:root{--a-deep:#c2255c;--a-shadow:#8f1a44;--b-deep:#1864ab;--b-shadow:#0f4a80;--c-deep:#2b8a3e;--c-shadow:#1e622c;--d-deep:#d9480f;--d-shadow:#a3360b;
+  --tl-bg:#ffffff;--tl-card:#f1eef6;--tl-card-line:#e1dceb;--tl-ink:#1d1a26;--tl-muted:#5f5a6b;--tl-ok:#2b8a3e;--tl-ok-soft:#e3f5e6;--tl-bad:#c92a2a;--tl-bad-soft:#fde5e5}
+.tlz{background:var(--tl-bg);color:var(--tl-ink);border:3px solid var(--accent);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:8px}
+.viewbox.tlz{border:3px dashed var(--tl-card-line)}
+.tlz .turnhead{color:var(--deep)}
+.viewbox.tlz .turnhead{color:var(--tl-muted)}
+.tlz .card{background:var(--tl-card);border:1px solid var(--tl-card-line);color:var(--tl-ink)}
+.tlz .card .yr{color:var(--deep)}
+.tlz .card .a{color:var(--tl-muted)}
+.tlz .card.new{border-width:2px}
+.tlz .card.new.good{border-color:var(--tl-ok);background:var(--tl-ok-soft)}
+.tlz .card.new.wrong{border-color:var(--tl-bad);background:var(--tl-bad-soft)}
+.tlz .slot{background:var(--deep);border:0;color:#fff;box-shadow:0 2px 0 var(--deep-shadow);font-weight:700;font-size:.88rem;padding:9px}
+.tlz .slot:hover{filter:brightness(1.08);color:#fff}
+.tlz .slot.sel{background:var(--tl-ink);color:#fff;box-shadow:0 0 0 3px var(--accent);padding:12px}
+.tlz .slot.chip{background:var(--tl-bg);color:var(--deep);border:2px solid var(--deep);box-shadow:none}
+.tlz .slot.pick{background:var(--tl-bg);color:var(--deep);border:2px dashed var(--deep);box-shadow:none}
+.tlz .slot.pick:disabled{opacity:.7}
+.duo .tlz{padding:8px;gap:6px}
+.duo .tlz .slot{padding:7px 4px;font-size:.8rem}
+.duo .tlz .slot.sel{padding:10px 4px}
 @media (prefers-reduced-motion:reduce){.spin{animation:none}}
 </style>
 
@@ -177,7 +199,7 @@ button.mteam{cursor:pointer}
 <div class="wrap" id="app"></div>
 
 <script>
-const APP_VERSION="p1.10";
+const APP_VERSION="p1.11";
 const BUILTIN = [
 ["Ein Schiff wird kommen","Lale Andersen",1960],["Da sprach der alte Häuptling der Indianer","Gus Backus",1960],
 ["Stand by Me","Ben E. King",1961],["Twist and Shout","The Beatles",1963],["I Want to Hold Your Hand","The Beatles",1963],
@@ -782,7 +804,7 @@ const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()
 try{localStorage.removeItem(KEY_CUSTOM)}catch(e){}
 const NOPREV=new Set(load(KEY_NOPREV,[]));
 let S=load(KEY_GAME,null);
-let setup=Object.assign({n:2,names:["Team 1","Team 2","Team 3","Team 4"],target:10,pack:"standard",mode:"sim",tokens:true,hitster:true},load(KEY_SETUP,{}));
+let setup=Object.assign({n:2,names:["Team 1","Team 2","Team 3","Team 4"],target:10,pack:"standard",mode:"sim",tokens:true,hitster:true,autoplay:true},load(KEY_SETUP,{}));
 if(!PACKS[setup.pack])setup.pack="standard";
 const app=document.getElementById("app");
 
@@ -832,6 +854,8 @@ function renderSetup(msg=""){
   </section>
   <section class="panel">
     <h2>Regeln</h2>
+    <label class="check"><input type="checkbox" id="rauto" ${setup.autoplay!==false?"checked":""}> Automatisch weiterspielen</label>
+    <p class="hint" style="margin:0 0 0 30px">Nach „Weiter“ und nach „Überspringen“ startet der nächste Song von selbst.</p>
     ${mode==="turn"?`
     <label class="check"><input type="checkbox" id="rtok" ${setup.tokens?"checked":""}> Tokens</label>
     <p class="hint" style="margin:0 0 0 30px">Jedes Team startet mit 2 Tokens, höchstens 5. Titel + Interpret richtig genannt: +1 Token. Song überspringen: 1 Token. Karte ohne Raten kaufen: 3 Tokens.</p>
@@ -867,17 +891,19 @@ function renderSetup(msg=""){
     if(!g("mode").disabled)setup.mode=g("mode").value;
     if(g("rtok"))setup.tokens=g("rtok").checked;
     if(g("rhit"))setup.hitster=g("rhit").checked;
+    if(g("rauto"))setup.autoplay=g("rauto").checked;
     save(KEY_SETUP,setup);
   };
   g("start").onclick=()=>{sync();startGame()};
   g("ctest").onclick=async e=>{e.target.disabled=true;g("cres").textContent="Teste …";
     const r=await connTest();g("cres").textContent=r.join("\n")+"\nVersion "+APP_VERSION+" · "+navigator.userAgent.replace(/^Mozilla\/5\.0 /,"").slice(0,90);e.target.disabled=false};
   ["pack","nteams","mode","rtok"].forEach(id=>{const el=g(id);if(el)el.onchange=()=>{if(id==="nteams")setup.n=+el.value;sync();renderSetup()}});
-  ["svc","rhit","target"].forEach(id=>{const el=g(id);if(el)el.onchange=sync});
+  ["svc","rhit","target","rauto"].forEach(id=>{const el=g(id);if(el)el.onchange=sync});
   const r=g("resume"); if(r) r.onclick=renderGame;
 }
 
 function startGame(){
+  autoNext=false;
   const N=setup.n, mode=N>2?"turn":setup.mode;
   const pool=PACKS[setup.pack].songs.filter(x=>!NOPREV.has(keyOf(x)));
   const need=setup.target*N+10;
@@ -1001,7 +1027,9 @@ function setupPlayer(){
       if(u===null&&loadedKey===k&&S.phase==="guess"&&S.deck.length){   // keine Vorschau: still überspringen
         S.current=S.deck.pop(); S.skipped=(S.skipped||0)+1; loadedKey=null; save(KEY_GAME,S); renderGame(); return;
       }
-      if(loadedKey===k&&u){audio.src=u;audio.load()}
+      if(loadedKey===k&&u){audio.src=u;audio.load();
+        if(autoNext){autoNext=false;audio.play().catch(()=>{const ps=$("pstatus");if(ps)ps.textContent="Zum Abspielen auf ▶ tippen."})}}
+      if(u===undefined)autoNext=false;
       updatePlayerUI();
       const nx=S.deck[S.deck.length-1]; if(nx)findPreview(nx);   // nächsten Song vorladen
     });
@@ -1012,9 +1040,17 @@ function setupPlayer(){
   updatePlayerUI();
 }
 
+/* Automatisch weiterspielen: Ton im Klick freischalten, Song nach dem Laden starten */
+let autoNext=false;
+const SILENT="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=";
+function armAuto(){
+  if(setup.autoplay===false){autoNext=false;return}
+  autoNext=true;
+  try{audio.src=SILENT;const p=audio.play();if(p&&p.catch)p.catch(()=>{})}catch(e){}
+}
 /* ---------- Spiel ---------- */
 const TEAMC=["a","b","c","d"];
-function teamVars(i){const c=TEAMC[i%4];return `--accent:var(--${c});--accent-soft:var(--${c}-soft)`}
+function teamVars(i){const c=TEAMC[i%4];return `--accent:var(--${c});--accent-soft:var(--${c}-soft);--deep:var(--${c}-deep);--deep-shadow:var(--${c}-shadow)`}
 function cardHTML(c,extra=""){return `<div class="card ${extra}"><span class="yr">${c.y}</span><div style="min-width:0"><div class="t">${esc(c.t)}</div><div class="a">${esc(c.a)}</div></div></div>`}
 const sortedOf=t=>[...t.cards].sort((x,y)=>x.y-y.y);
 const slotOk=(team,k,y)=>{const s=sortedOf(team),l=k>0?s[k-1].y:-Infinity,r=k<s.length?s[k].y:Infinity;return l<=y&&y<=r};
@@ -1141,13 +1177,13 @@ function renderGame(){
 
    <main class="gscroll"><div class="gin">
     ${turn?`
-    <section class="${S.view===A?"turnbox":"viewbox"}" style="${teamVars(S.view)}">
+    <section class="${S.view===A?"turnbox":"viewbox"} tlz" style="${teamVars(S.view)}">
       <div class="turnhead">${S.view===A?esc(T.name)+" · ist dran":esc(S.teams[S.view].name)+" · nur Ansicht"}</div>
       <div class="timeline">${timelineHTML(S.view)}</div>
     </section>`
     :`<div class="duo">${S.teams.map((t,i)=>`<section style="${teamVars(i)}">
         <h2 class="colhead">${esc(t.name)}</h2>
-        <div class="timeline">${timelineHTML(i)}</div></section>`).join("")}</div>`}
+        <div class="timeline tlz">${timelineHTML(i)}</div></section>`).join("")}</div>`}
    </div></main>
 
    <footer class="gfoot"><div class="gin">
@@ -1171,6 +1207,7 @@ function renderGame(){
   if(q("chcancel"))q("chcancel").onclick=()=>{S.chPick=null;renderGame()};
   if(q("skip"))q("skip").onclick=()=>{
     if(turn&&tok){if(T.tok<1)return;T.tok--;}
+    armAuto();
     if(!S.deck.length)return endByDeck();
     S.deck.unshift(S.current);S.current=S.deck.pop();S.slots=S.slots.map(()=>null);
     for(const k in (S.ch||{}))S.teams[k].tok++; S.ch={}; S.chPick=null; commit()};
@@ -1202,6 +1239,7 @@ function renderGame(){
   };
   if(q("next"))q("next").onclick=()=>{
     S.teams.forEach(t=>t.cards.forEach(c=>delete c._r));
+    armAuto();
     if(S.pendingWin!=null){S.winner=S.pendingWin;save(KEY_GAME,S);return renderWin()}
     if(!S.deck.length)return endByDeck();
     S.current=S.deck.pop();S.slots=S.slots.map(()=>null);S.phase="guess";S.ok=S.ok.map(()=>null);S.ch={};S.chPick=null;S.res=null;
