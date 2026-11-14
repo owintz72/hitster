@@ -131,6 +131,44 @@ button:disabled{opacity:.4;cursor:not-allowed}
   .duo .card .t{font-size:.88rem}
   .duo .card .a{font-size:.78rem}
 }
+/* Spielbildschirm: Kopf und Fuß fest, nur der Zeitstrahl scrollt */
+.gscreen{position:fixed;inset:0;display:flex;flex-direction:column;background:var(--bg);z-index:5}
+.ghead{flex:0 0 auto;padding-top:calc(env(safe-area-inset-top,0px) + 8px);padding-bottom:8px;border-bottom:1px solid var(--line);background:var(--bg)}
+.gfoot{flex:0 0 auto;padding-top:8px;padding-bottom:calc(env(safe-area-inset-bottom,0px) + 10px);border-top:1px solid var(--line);background:var(--bg)}
+.gscroll{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding-block:12px}
+.gin{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:8px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.hline{display:flex;align-items:center;gap:8px}
+.hline .label{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tiny{padding:5px 12px;font-size:.8rem}
+.mscore{display:grid;grid-template-columns:repeat(var(--n,2),1fr);gap:6px}
+.mteam{border:2px solid var(--line);border-radius:10px;padding:4px 8px;display:flex;flex-direction:column;gap:2px;min-width:0;background:var(--surface)}
+.mteam.active{border-color:var(--accent);background:var(--accent-soft)}
+.mname{font-weight:700;font-size:.78rem;color:var(--accent);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mcount{font-family:var(--f-mono);font-weight:700;font-size:1rem;font-variant-numeric:tabular-nums;line-height:1.2}
+.mcount small{color:var(--muted);font-size:.72rem}
+.mteam{font:inherit;color:var(--ink);text-align:left;cursor:default}
+button.mteam{cursor:pointer}
+.mteam.viewing{border-style:dashed;border-color:var(--accent)}
+.linkbtn{background:none;border:0;padding:0;color:var(--ink);font:inherit;font-weight:700;text-decoration:underline;cursor:pointer;border-radius:4px}
+.mteam .toks{gap:3px}.mteam .toks i{width:8px;height:8px;border-width:1.5px}
+.prow{display:flex;align-items:center;gap:8px}
+.disc.sm{flex:0 0 46px;height:46px;font-size:.9rem}
+.pcol{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.prow #play{padding:9px 16px;flex:0 0 auto}
+.prow #restart{padding:9px 12px;flex:0 0 auto}
+.pstat{min-width:0;font-size:.76rem;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.rrow{display:flex;flex-direction:column;gap:6px}
+.rrow .card{padding:6px 10px}
+.rlines{display:flex;flex-wrap:wrap;gap:6px}
+.rlines .result{padding:6px 10px;font-size:.88rem;border-radius:10px}
+.rlines button{padding:6px 12px;font-size:.85rem}
+.ghead .tabs{gap:6px}.ghead .tab{padding:6px 8px;font-size:.85rem}
+.frow{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.flabel{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-right:2px}
+.hbtn{border-color:var(--accent)!important;color:var(--accent)!important}
+.svc{padding:8px 14px;font-size:.88rem;margin-left:auto}
+.gfoot #reveal,.gfoot #next{width:100%;padding:14px}
+@media (max-width:560px){.ghead .tabs.n4{--n:4!important}.ghead .tabs .tab{font-size:.78rem;padding:6px 4px}}
 @media (prefers-reduced-motion:reduce){.spin{animation:none}}
 </style>
 
@@ -139,7 +177,7 @@ button:disabled{opacity:.4;cursor:not-allowed}
 <div class="wrap" id="app"></div>
 
 <script>
-const APP_VERSION="p1.07";
+const APP_VERSION="p1.10";
 const BUILTIN = [
 ["Ein Schiff wird kommen","Lale Andersen",1960],["Da sprach der alte Häuptling der Indianer","Gus Backus",1960],
 ["Stand by Me","Ben E. King",1961],["Twist and Shout","The Beatles",1963],["I Want to Hold Your Hand","The Beatles",1963],
@@ -664,10 +702,71 @@ const STANDARD=(()=>{const seen=new Set(),out=[];
   for(const x of [...BUILTIN,...DE_ADD,...STD_ADD]){const k=(x.t+"|"+x.a).toLowerCase();if(!seen.has(k)){seen.add(k);out.push(x)}}
   return out})();
 const EUROPA=[...BUILTIN.filter(s=>DE_BASE_TITLES.has(s.t)),...DE_ADD,...PLS,...PL_ADD,...FRS,...FR_ADD,...BUILTIN.filter(s=>INT_TITLES.has(s.t))];
+const LAT_ADD=[
+// Klassiker 1958–1989
+["Tequila","The Champs",1958],["Patricia","Pérez Prado",1958],["Cuando calienta el sol","Los Hermanos Rigual",1961],["Desafinado","Stan Getz & Charlie Byrd",1962],
+["The Girl from Ipanema","Astrud Gilberto & Stan Getz",1964],["Sabor a mí","Eydie Gormé & Trío Los Panchos",1964],["Guantanamera","The Sandpipers",1966],
+["Black Is Black","Los Bravos",1966],["La, la, la","Massiel",1968],["Vivo cantando","Salomé",1969],["Evil Ways","Santana",1969],
+["Black Magic Woman","Santana",1970],["Samba Pa Ti","Santana",1970],["El Cóndor Pasa (If I Could)","Simon & Garfunkel",1970],["Gwendolyne","Julio Iglesias",1970],
+["Gracias a la vida","Mercedes Sosa",1971],["Volver, volver","Vicente Fernández",1972],["Aguanile","Héctor Lavoe & Willie Colón",1972],
+["Entre dos aguas","Paco de Lucía",1973],["Quimbara","Celia Cruz & Johnny Pacheco",1974],["Te estoy amando locamente","Las Grecas",1974],
+["Feelings","Morris Albert",1974],["El preso","Fruko y sus Tesos",1975],["Pedro Navaja","Rubén Blades",1978],["Plástico","Willie Colón & Rubén Blades",1978],
+["El cantante","Héctor Lavoe",1978],["Volando voy","Camarón de la Isla",1979],["Hay que venir al sur","Raffaella Carrà",1979],
+["Begin the Beguine (Volver a empezar)","Julio Iglesias",1981],["Me colé en una fiesta","Mecano",1983],["Dr. Beat","Miami Sound Machine",1984],
+["Ni tú ni nadie","Alaska y Dinarama",1984],["Lobo hombre en París","La Unión",1984],["Amor eterno","Rocío Dúrcal",1984],["Querida","Juan Gabriel",1984],
+["Cali pachanguero","Grupo Niche",1984],["Conga","Gloria Estefan & Miami Sound Machine",1985],["Venecia","Hombres G",1985],["Cruz de navajas","Mecano",1986],
+["La rebelión","Joe Arroyo",1986],["Rhythm Is Gonna Get You","Gloria Estefan & Miami Sound Machine",1987],["Djobi Djoba","Gipsy Kings",1987],
+["La Isla Bonita","Madonna",1987],["Ahora te puedes marchar","Luis Miguel",1987],["Mujer contra mujer","Mecano",1988],["Un año más","Mecano",1988],
+["Oye mi canto","Gloria Estefan",1989],["La incondicional","Luis Miguel",1989],
+// 1990–2009
+["Maldito duende","Héroes del Silencio",1990],["Entre dos tierras","Héroes del Silencio",1990],["La bilirrubina","Juan Luis Guerra",1990],["Bachata rosa","Juan Luis Guerra",1990],
+["Un año de amor","Luz Casal",1991],["Oye mi amor","Maná",1992],["Matador","Los Fabulosos Cadillacs",1993],["La gota fría","Carlos Vives",1993],
+["Lamento boliviano","Enanitos Verdes",1994],["Historia de taxi","Ricardo Arjona",1994],["Pies descalzos, sueños blancos","Shakira",1996],["Bailando","Paradisio",1996],
+["En el muelle de San Blas","Maná",1997],["Chan Chan","Buena Vista Social Club",1997],["El cuarto de Tula","Buena Vista Social Club",1997],["Dos gardenias","Buena Vista Social Club",1997],
+["Samba de Janeiro","Bellini",1997],["Vuelve","Ricky Martin",1998],["La Bomba","Ricky Martin",1998],["The Cup of Life","Ricky Martin",1998],["Salomé","Chayanne",1998],
+["Depende","Jarabe de Palo",1998],["Livin' la Vida Loca","Ricky Martin",1999],["Bailamos","Enrique Iglesias",1999],["Let's Get Loud","Jennifer Lopez",1999],
+["Waiting for Tonight","Jennifer Lopez",1999],["Smooth","Santana feat. Rob Thomas",1999],["Maria Maria","Santana feat. The Product G&B",1999],["Mambo No. 5","Lou Bega",1999],
+["Fruta fresca","Carlos Vives",1999],["She Bangs","Ricky Martin",2000],["Whenever, Wherever","Shakira",2001],["Hero","Enrique Iglesias",2001],["Color esperanza","Diego Torres",2001],
+["La negra tiene tumbao","Celia Cruz",2001],["Fotografía","Juanes feat. Nelly Furtado",2002],["Mariposa traicionera","Maná",2002],["Mi primer millón","Bacilos",2002],
+["Dile","Don Omar",2003],["Bonito","Jarabe de Palo",2003],["No es lo mismo","Alejandro Sanz",2003],["Rosas","La Oreja de Van Gogh",2003],["Tal vez","Ricky Martin",2003],
+["Lo que pasó, pasó","Daddy Yankee",2004],["Valió la pena","Marc Anthony",2004],["Rompe","Daddy Yankee",2005],["Rakata","Wisin & Yandel",2005],
+["Hips Don't Lie","Shakira",2006],["Salió el sol","Don Omar",2006],["Me voy","Julieta Venegas",2006],["Limón y sal","Julieta Venegas",2006],["Me enamora","Juanes",2007],
+["I Know You Want Me (Calle Ocho)","Pitbull",2009],["She Wolf","Shakira",2009],["Abusadora","Wisin & Yandel",2009],["Yo no sé mañana","Luis Enrique",2009],
+// 2010–2025
+["Waka Waka (This Time for Africa)","Shakira",2010],["Loca","Shakira feat. El Cata",2010],["Cuando me enamoro","Enrique Iglesias feat. Juan Luis Guerra",2010],
+["Stand by Me","Prince Royce",2010],["Mientes","Camila",2010],["On the Floor","Jennifer Lopez feat. Pitbull",2011],["Rabiosa","Shakira feat. Pitbull",2011],
+["Give Me Everything","Pitbull feat. Ne-Yo, Afrojack & Nayer",2011],["Taboo","Don Omar",2011],["Balada (Tchê tcherere tchê tchê)","Gusttavo Lima",2011],
+["Solamente tú","Pablo Alborán",2011],["Limbo","Daddy Yankee",2012],["Bailando por ahí","Juan Magán",2012],["Darte un beso","Prince Royce",2013],["Timber","Pitbull feat. Kesha",2013],
+["Eres mía","Romeo Santos",2014],["Odio","Romeo Santos feat. Drake",2014],["6 AM","J Balvin feat. Farruko",2014],["Ay vamos","J Balvin",2014],
+["Ginza","J Balvin",2015],["Borró cassette","Maluma",2015],["La mordidita","Ricky Martin feat. Yotuel",2015],["El mismo sol","Álvaro Soler",2015],
+["Safari","J Balvin feat. Pharrell Williams, BIA & Sky",2016],["Hasta el amanecer","Nicky Jam",2016],["Reggaetón lento (Bailemos)","CNCO",2016],["Sofía","Álvaro Soler",2016],
+["Vente pa' ca","Ricky Martin feat. Maluma",2016],["Traicionera","Sebastián Yatra",2016],["Bailar","Deorro feat. Elvis Crespo",2016],
+["Havana","Camila Cabello feat. Young Thug",2017],["Échame la culpa","Luis Fonsi & Demi Lovato",2017],["Me enamoré","Shakira",2017],["Criminal","Natti Natasha & Ozuna",2017],
+["Se preparó","Ozuna",2017],["Machika","J Balvin, Jeon & Anitta",2017],["Corazón","Maluma feat. Nego do Borel",2017],["Vai Malandra","Anitta",2017],["Bum Bum Tam Tam","MC Fioti",2017],
+["Dura","Daddy Yankee",2018],["Taki Taki","DJ Snake feat. Selena Gomez, Ozuna & Cardi B",2018],["I Like It","Cardi B, Bad Bunny & J Balvin",2018],["X (Equis)","Nicky Jam & J Balvin",2018],
+["Te boté","Nio García, Darell & Casper Mágico",2018],["Sin pijama","Becky G & Natti Natasha",2018],["Lo malo","Aitana & Ana Guerra",2018],["La cintura","Álvaro Soler",2018],
+["Con calma","Daddy Yankee feat. Snow",2019],["Tusa","Karol G & Nicki Minaj",2019],["Callaíta","Bad Bunny",2019],["La canción","J Balvin & Bad Bunny",2019],
+["No me conoce","Jhay Cortez, J Balvin & Bad Bunny",2019],["Baila baila baila","Ozuna",2019],["Ritmo (Bad Boys for Life)","Black Eyed Peas & J Balvin",2019],
+["Aute Cuture","Rosalía",2019],["Tutu","Camilo & Pedro Capó",2019],["Señorita","Shawn Mendes & Camila Cabello",2019],
+["Safaera","Bad Bunny, Jowell & Randy & Ñengo Flow",2020],["La noche de anoche","Bad Bunny & Rosalía",2020],["Rojo","J Balvin",2020],["Ay, DiOs Mío!","Karol G",2020],
+["Vida de rico","Camilo",2020],["Mon Amour (Remix)","Zzoilo & Aitana",2020],["Tú me dejaste de querer","C. Tangana, Niño de Elche & La Húngara",2020],
+["Yonaguni","Bad Bunny",2021],["Pepas","Farruko",2021],["Ateo","C. Tangana & Nathy Peluso",2021],["Envolver","Anitta",2021],
+["Me porto bonito","Bad Bunny & Chencho Corleone",2022],["Ojitos lindos","Bad Bunny & Bomba Estéreo",2022],["Mamiii","Becky G & Karol G",2022],["Saoko","Rosalía",2022],
+["Hey Mor","Ozuna & Feid",2022],["Te felicito","Shakira & Rauw Alejandro",2022],["Una noche en Medellín","Cris MJ",2022],["Bebe dame","Fuerza Regida & Grupo Frontera",2022],
+["TQG","Karol G & Shakira",2023],["Qlona","Karol G & Peso Pluma",2023],["Monaco","Bad Bunny",2023],["Un x100to","Grupo Frontera & Bad Bunny",2023],
+["La Bebé (Remix)","Yng Lvcas & Peso Pluma",2023],["Columbia","Quevedo",2023],["Lala","Myke Towers",2023],["Si antes te hubiera conocido","Karol G",2024],
+["Gata Only","FloyyMenor & Cris MJ",2024],["DtMF","Bad Bunny",2025],["Baile inolvidable","Bad Bunny",2025]
+].map(([t,a,y])=>({t,a,y}));
+const BRA_TITLES=new Set(["Chega de saudade","Mas que nada","País tropical","Taj Mahal","Águas de março","Ilariê","Lambada","Magalenha","Tic Tic Tac","Ai se eu te pego","Show das Poderosas"]);
+const LATINO=(()=>{const i0=SUED.findIndex(x=>x.t==="La Bamba"), i1=SUED.findIndex(x=>x.t==="Zorra");
+  const seen=new Set(),out=[];
+  for(const x of [...SUED.slice(i0,i1+1),...EXO.filter(x=>BRA_TITLES.has(x.t)),...LAT_ADD]){const k=(x.t+"|"+x.a).toLowerCase();if(!seen.has(k)){seen.add(k);out.push(x)}}
+  return out})();
 const PACKS={
   standard:{name:"Standard",songs:STANDARD,info:"ca. 70 % internationale und 30 % deutschsprachige Hits"},
   europa:{name:"Frankreich · Polen · Deutschland",songs:EUROPA,info:"je ca. 30 % französisch, polnisch, deutsch, dazu 10 % internationale Hits"},
   sued:{name:"Süden & Welt",songs:SUED,info:"italienisch, spanischsprachig, Weltmusik – ohne Englisch"},
+  latino:{name:"Latino",songs:LATINO,info:"Salsa, Reggaeton, Latin-Pop, Bachata, Bossa Nova und Latin-Hits auf Englisch"},
   exotisch:{name:"Exotisch",songs:EXO,info:"Japan, Korea, Asien, Indien, Afrika, Orient, Balkan, Osteuropa, Brasilien, Irland, Nordeuropa"}
 };
 PACKS.alle={name:"Alle Pakete gemischt",info:"alle Pakete zusammen, doppelte Songs nur einmal",songs:(()=>{const seen=new Set(),out=[];
@@ -986,70 +1085,78 @@ function renderGame(){
       if(tok&&!R.bought) lines.push(R.earned
         ?`<div class="hint">+1 Token für ${esc(T.name)} vergeben.</div>`
         :`<button class="small ghost" id="earn" ${T.tok>=MAXTOK?"disabled":""}>✓ Titel + Interpret richtig genannt (+1 Token)${T.tok>=MAXTOK?" – Maximum erreicht":""}</button>`);
-      resultHTML=`<div style="display:flex;flex-direction:column;gap:8px">${lines.join("")}</div>`;
+      resultHTML=`<div class="rlines">${lines.join("")}</div>`;
     } else {
-      resultHTML=`<div class="row">${S.teams.map((t,i)=>`<div class="result ${S.ok[i]?"good":"wrong"}" style="flex:1 1 140px">${esc(t.name)}: ${S.ok[i]?"richtig":"falsch"}</div>`).join("")}</div>`;
+      resultHTML=`<div class="rlines">${S.teams.map((t,i)=>`<div class="result ${S.ok[i]?"good":"wrong"}">${esc(t.name)}: ${S.ok[i]?"richtig":"falsch"}</div>`).join("")}</div>`;
     }
   }
 
-  // HITSTER-Bereich (nur Abwechsel-Modus, vor dem Auflösen)
-  let hitHTML="";
-  if(turn&&hit&&!res){
-    if(S.chPick!=null){
-      hitHTML=`<div class="panel hitbox" style="${teamVars(S.chPick)}"><strong>${esc(S.teams[S.chPick].name)}: Lücke im Zeitstrahl von ${esc(T.name)} antippen</strong>
-        <button class="small ghost" id="chcancel">Abbrechen</button></div>`;
+  // Fußleiste: HITSTER + Joker
+  let footRow="";
+  if(!res){
+    if(turn&&hit&&S.chPick!=null){
+      footRow=`<div class="frow" style="${teamVars(S.chPick)}"><span class="flabel" style="color:var(--accent)">${esc(S.teams[S.chPick].name)}: Lücke im Zeitstrahl antippen</span><button class="small ghost" id="chcancel">Abbrechen</button></div>`;
     } else {
-      const btns=others.map(i=>{const t=S.teams[i],has=S.ch&&S.ch[i]!=null;
-        return `<button class="small ghost" data-chteam="${i}" style="${teamVars(i)};border-color:var(--accent);color:var(--accent)" ${(!ready||has||t.tok<1)?"disabled":""}>${esc(t.name)}: HITSTER! ${has?"✓":"(1 Token)"}</button>`}).join("");
-      hitHTML=`<div class="panel hitbox"><strong>HITSTER! – Karte klauen</strong>
-        <p class="hint" style="margin:0">${ready?"Andere Teams dürfen jetzt einen Token auf eine andere Lücke setzen.":"Zuerst wählt "+esc(T.name)+" eine Lücke."}</p>
-        <div class="pbtns">${btns}</div></div>`;
+      let h="";
+      if(turn&&hit) h+=`<div class="frow"><span class="flabel">HITSTER!</span>${others.map(i=>{const t=S.teams[i],has=S.ch&&S.ch[i]!=null;
+        return `<button class="small ghost hbtn" data-chteam="${i}" style="${teamVars(i)}" ${(!ready||has||t.tok<1)?"disabled":""} aria-label="HITSTER für ${esc(t.name)}">${esc(t.name)}${has?" ✓":""}</button>`}).join("")}</div>`;
+      h+=`<div class="frow">${turn&&tok?`<span class="flabel">Joker</span>
+          <button class="small ghost" id="skip" ${T.tok<1?"disabled":""}>⏭ Überspringen · 1</button>
+          <button class="small ghost" id="buy" ${T.tok<3?"disabled":""}>Kaufen · 3</button>`
+        :`<button class="small ghost" id="skip">Anderer Song</button>`}
+          <a class="small ghost btn svc" href="${esc(ytLink(S.current))}" target="_blank" rel="noopener">${esc(svcName())}</a></div>`;
+      footRow=h;
     }
   }
+  const mainBtn=!res
+    ?`<button id="reveal" ${ready&&S.chPick==null?"":"disabled"}>${ready?"Auflösen":turn?esc(T.name)+": Lücke wählen":"Beide Teams wählen eine Lücke"}</button>`
+    :`<button id="next">${turn?"Weiter: "+esc(NX.name)+" ist dran":"Nächster Song"}</button>`;
+
+  const prevSc=document.querySelector(".gscroll"), keepTop=prevSc&&window._gkey===(S.round+"|"+A+"|"+S.view)?prevSc.scrollTop:0;
+  window._gkey=S.round+"|"+A+"|"+S.view;
 
   app.innerHTML=`
-  <div class="score n${N}">${S.teams.map((t,i)=>`<div class="team ${turn?(i===A?"active":""):(!res&&S.slots[i]==null?"active":"")}" style="${teamVars(i)}">
-     <span class="name">${esc(t.name)}</span><span class="count">${t.cards.length}<span class="muted" style="font-size:.9rem"> / ${S.target}</span></span>
-     <span class="bar"><i style="width:${Math.min(100,t.cards.length/S.target*100)}%"></i></span>
-     ${tok?tokHTML(t.tok):""}</div>`).join("")}</div>
-
-  <section class="panel">
-    <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap">
-      <span class="label">${S.tiebreak?"Stechen · ":""}Runde ${S.round}${turn?" · "+esc(T.name)+" ist dran":""}</span><span class="hint">${S.deck.length} Songs im Stapel</span>
+  <div class="gscreen">
+   <header class="ghead"><div class="gin">
+    <div class="hline">
+      <span class="label">${S.tiebreak?"Stechen · ":""}Runde ${S.round}${turn?" · "+esc(T.name)+" ist dran":""}</span>
+      <span class="hint">${S.deck.length} Songs</span>
+      <button class="ghost tiny" id="quit">Menü</button>
     </div>
+    <div class="mscore" style="--n:${N}">${S.teams.map((t,i)=>`<${turn?"button":"div"} class="mteam ${turn?(i===A?"active":""):(!res&&S.slots[i]==null?"active":"")} ${turn&&S.view===i&&i!==A?"viewing":""}" style="${teamVars(i)}" ${turn?`data-view="${i}" aria-pressed="${S.view===i}" aria-label="Zeitstrahl von ${esc(t.name)} zeigen"`:""}>
+       <span class="mname">${esc(t.name)}${turn&&i===A?" ●":""}</span>
+       <span class="mcount">${t.cards.length}<small> / ${S.target}</small></span>
+       ${tok?tokHTML(t.tok):""}</${turn?"button":"div"}>`).join("")}</div>
+    ${turn&&S.view!==A?`<div class="hint" style="margin:0">Ansicht: Zeitstrahl von ${esc(S.teams[S.view].name)} · <button class="linkbtn" data-view="${A}">zurück zu ${esc(T.name)}</button></div>`:""}
     ${!res?`
-      <div class="mystery">
-        <div class="disc" id="disc" aria-hidden="true">?</div>
-        <div class="info">
-          <div class="pbtns"><button id="play" disabled>▶ Abspielen</button><button class="ghost" id="restart" disabled aria-label="Von vorn abspielen">↺</button></div>
-          <div class="hint" id="pstatus" role="status">Vorschau wird geladen …</div>
-          <div class="pbtns">
-            <button class="small ghost" id="skip" ${turn&&tok&&T.tok<1?"disabled":""}>${turn&&tok?"Überspringen (1 Token)":"Anderer Song"}</button>
-            ${turn&&tok?`<button class="small ghost" id="buy" ${T.tok<3?"disabled":""}>Karte kaufen (3 Tokens)</button>`:""}
-            <a class="small ghost btn" style="padding:8px 14px;font-size:.88rem" href="${esc(ytLink(S.current))}" target="_blank" rel="noopener">${esc(svcName())}</a>
-          </div>
-        </div>
+    <div class="prow">
+      <div class="disc sm" id="disc" aria-hidden="true" style="${teamVars(turn?A:0)}">?</div>
+      <div class="pcol">
+        <div class="pbtns"><button id="play" disabled>▶ Abspielen</button><button class="ghost" id="restart" disabled aria-label="Von vorn abspielen">↺</button></div>
+        <div class="hint pstat" id="pstatus" role="status">Vorschau wird geladen …</div>
       </div>
-      <p class="hint" style="margin:0">${S.tiebreak?"Stechen: Gewonnen hat, wer nach einer Runde allein vorn liegt. ":""}${turn?esc(T.name)+" wählt eine Lücke im eigenen Zeitstrahl.":"Beide Teams wählen eine Lücke in ihrem Zeitstrahl."}</p>`
-    :`<div class="label">Auflösung</div>${cardHTML(S.current)}${resultHTML}`}
-  </section>
+    </div>`
+    :`<div class="rrow">${cardHTML(S.current)}${resultHTML}</div>`}
+   </div></header>
 
-  ${turn?`
-  <div class="tabs n${N}" role="tablist" style="--n:${N}">${S.teams.map((t,i)=>`<button role="tab" class="tab ${S.view===i?"on":""}" data-view="${i}" aria-selected="${S.view===i}" style="${teamVars(i)}">${esc(t.name)}${i===A?" ●":""} <span class="tc">${t.cards.length}</span></button>`).join("")}</div>
-  <section class="${S.view===A?"turnbox":"viewbox"}" style="${teamVars(S.view)}">
-    <div class="turnhead">${S.view===A?esc(T.name)+" · ist dran":esc(S.teams[S.view].name)+" · nur Ansicht"}</div>
-    <div class="timeline">${timelineHTML(S.view)}</div>
-  </section>
-  ${S.view===A?hitHTML:""}`
-  :`<div class="duo">${S.teams.map((t,i)=>`<section style="${teamVars(i)}">
-      <h2 class="colhead">${esc(t.name)}</h2>
-      <div class="timeline">${timelineHTML(i)}</div></section>`).join("")}</div>`}
+   <main class="gscroll"><div class="gin">
+    ${turn?`
+    <section class="${S.view===A?"turnbox":"viewbox"}" style="${teamVars(S.view)}">
+      <div class="turnhead">${S.view===A?esc(T.name)+" · ist dran":esc(S.teams[S.view].name)+" · nur Ansicht"}</div>
+      <div class="timeline">${timelineHTML(S.view)}</div>
+    </section>`
+    :`<div class="duo">${S.teams.map((t,i)=>`<section style="${teamVars(i)}">
+        <h2 class="colhead">${esc(t.name)}</h2>
+        <div class="timeline">${timelineHTML(i)}</div></section>`).join("")}</div>`}
+   </div></main>
 
-  ${!res
-    ?`<button id="reveal" ${ready&&S.chPick==null?"":"disabled"} style="padding:16px">${ready?"Auflösen":turn?esc(T.name)+": Lücke wählen":"Beide Teams wählen eine Lücke"}</button>`
-    :`<button id="next" style="padding:16px">${turn?"Weiter: "+esc(NX.name)+" ist dran":"Nächster Song"}</button>`}
-  <button class="ghost small" id="quit">Zum Menü</button>
-  <p class="hint" style="margin:0;text-align:center">Version ${APP_VERSION}</p>`;
+   <footer class="gfoot"><div class="gin">
+    ${footRow}
+    ${mainBtn}
+   </div></footer>
+  </div>`;
+  const sc=document.querySelector(".gscroll"); if(sc&&keepTop)sc.scrollTop=keepTop;
+  if(res&&window._rkey!==window._gkey){window._rkey=window._gkey;const nc=document.querySelector(".gscroll .card.new");if(nc)nc.scrollIntoView({block:"center"})}
 
   const q=id=>document.getElementById(id);
   const commit=()=>{save(KEY_GAME,S);renderGame()};
@@ -1070,7 +1177,7 @@ function renderGame(){
   if(q("buy"))q("buy").onclick=()=>{if(T.tok<3)return;T.tok-=3;
     for(const k in (S.ch||{}))S.teams[k].tok++; S.ch={}; S.chPick=null;
     T.cards.push({...S.current,_r:true}); S.res={bought:true,ok:true}; S.phase="reveal"; audio.pause();
-    if(A===N-1)checkRoundEnd(); commit(); window.scrollTo({top:0,behavior:"smooth"})};
+    if(A===N-1)checkRoundEnd(); commit(); 0};
   if(q("earn"))q("earn").onclick=()=>{if(T.tok<MAXTOK)T.tok++;S.res.earned=true;commit()};
   if(q("reveal"))q("reveal").onclick=()=>{
     const y=S.current.y; audio.pause();
@@ -1091,7 +1198,7 @@ function renderGame(){
       S.teams.forEach((t,i)=>{if(S.ok[i])t.cards.push({...S.current,_r:true})});
       S.phase="reveal"; checkRoundEnd();
     }
-    commit();window.scrollTo({top:0,behavior:"smooth"});
+    commit();0;
   };
   if(q("next"))q("next").onclick=()=>{
     S.teams.forEach(t=>t.cards.forEach(c=>delete c._r));
@@ -1099,7 +1206,7 @@ function renderGame(){
     if(!S.deck.length)return endByDeck();
     S.current=S.deck.pop();S.slots=S.slots.map(()=>null);S.phase="guess";S.ok=S.ok.map(()=>null);S.ch={};S.chPick=null;S.res=null;
     if(turn){S.active=(A+1)%N;S.view=S.active;if(S.active===0)S.round++;}else S.round++;
-    commit();window.scrollTo({top:0,behavior:"smooth"});
+    commit();0;
   };
   q("quit").onclick=()=>{audio.pause();renderSetup()};
   setupPlayer();
